@@ -1,0 +1,32 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: mokhtar
+      POSTGRES_PASSWORD: mokhtar
+      POSTGRES_DB: mokhtar
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mokhtar"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://mokhtar:mokhtar@db:5432/mokhtar
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      DEFAULT_CURRENCY: ILS
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "python -c 'from app.db.session import engine, Base; from app.models import models; Base.metadata.create_all(engine)'
+      && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+volumes:
+  pgdata:
