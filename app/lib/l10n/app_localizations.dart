@@ -391,6 +391,126 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'إعادة المحاولة'**
   String get retry;
+
+  /// No description provided for @dashboard.
+  ///
+  /// In ar, this message translates to:
+  /// **'لوحة التحكم'**
+  String get dashboard;
+
+  /// No description provided for @thisMonth.
+  ///
+  /// In ar, this message translates to:
+  /// **'هذا الشهر'**
+  String get thisMonth;
+
+  /// No description provided for @paidThisMonth.
+  ///
+  /// In ar, this message translates to:
+  /// **'المدفوع هذا الشهر'**
+  String get paidThisMonth;
+
+  /// No description provided for @chargedThisMonth.
+  ///
+  /// In ar, this message translates to:
+  /// **'الرسوم هذا الشهر'**
+  String get chargedThisMonth;
+
+  /// No description provided for @totalCollected.
+  ///
+  /// In ar, this message translates to:
+  /// **'إجمالي المحصَّل'**
+  String get totalCollected;
+
+  /// No description provided for @totalCharged.
+  ///
+  /// In ar, this message translates to:
+  /// **'إجمالي الرسوم'**
+  String get totalCharged;
+
+  /// No description provided for @expensesThisMonth.
+  ///
+  /// In ar, this message translates to:
+  /// **'المصاريف هذا الشهر'**
+  String get expensesThisMonth;
+
+  /// No description provided for @buildingBalance.
+  ///
+  /// In ar, this message translates to:
+  /// **'رصيد المبنى'**
+  String get buildingBalance;
+
+  /// No description provided for @debtors.
+  ///
+  /// In ar, this message translates to:
+  /// **'المتأخرون'**
+  String get debtors;
+
+  /// No description provided for @tapForDetails.
+  ///
+  /// In ar, this message translates to:
+  /// **'اضغط للتفاصيل'**
+  String get tapForDetails;
+
+  /// No description provided for @unitDetails.
+  ///
+  /// In ar, this message translates to:
+  /// **'تفاصيل الشقق'**
+  String get unitDetails;
+
+  /// No description provided for @balance.
+  ///
+  /// In ar, this message translates to:
+  /// **'الرصيد'**
+  String get balance;
+
+  /// No description provided for @addUnit.
+  ///
+  /// In ar, this message translates to:
+  /// **'إضافة شقة'**
+  String get addUnit;
+
+  /// No description provided for @addResident.
+  ///
+  /// In ar, this message translates to:
+  /// **'إضافة ساكن'**
+  String get addResident;
+
+  /// No description provided for @issueCode.
+  ///
+  /// In ar, this message translates to:
+  /// **'إصدار رمز'**
+  String get issueCode;
+
+  /// No description provided for @copy.
+  ///
+  /// In ar, this message translates to:
+  /// **'نسخ'**
+  String get copy;
+
+  /// No description provided for @optional.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختياري'**
+  String get optional;
+
+  /// No description provided for @open.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفتوحة'**
+  String get open;
+
+  /// No description provided for @issued.
+  ///
+  /// In ar, this message translates to:
+  /// **'صدرت'**
+  String get issued;
+
+  /// No description provided for @saved.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم الحفظ'**
+  String get saved;
 }
 
 class _AppLocalizationsDelegate

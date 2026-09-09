@@ -154,4 +154,64 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get retry => 'Retry';
+
+  @override
+  String get dashboard => 'Dashboard';
+
+  @override
+  String get thisMonth => 'This month';
+
+  @override
+  String get paidThisMonth => 'Paid this month';
+
+  @override
+  String get chargedThisMonth => 'Charged this month';
+
+  @override
+  String get totalCollected => 'Total collected';
+
+  @override
+  String get totalCharged => 'Total charged';
+
+  @override
+  String get expensesThisMonth => 'Expenses this month';
+
+  @override
+  String get buildingBalance => 'Building balance';
+
+  @override
+  String get debtors => 'Debtors';
+
+  @override
+  String get tapForDetails => 'Tap for details';
+
+  @override
+  String get unitDetails => 'Unit details';
+
+  @override
+  String get balance => 'Balance';
+
+  @override
+  String get addUnit => 'Add unit';
+
+  @override
+  String get addResident => 'Add resident';
+
+  @override
+  String get issueCode => 'Issue code';
+
+  @override
+  String get copy => 'Copy';
+
+  @override
+  String get optional => 'optional';
+
+  @override
+  String get open => 'Open';
+
+  @override
+  String get issued => 'Issued';
+
+  @override
+  String get saved => 'Saved';
 }

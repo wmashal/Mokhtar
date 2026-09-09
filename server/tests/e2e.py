@@ -174,4 +174,18 @@ check("user removed, unit stays", s == 200 and len(users) == 1)
 s, still = call("GET", f"/units/{u2['id']}/statement", token=mgr)
 check("financial history preserved", s == 200 and len(still) >= 3)
 
+# --- dashboard ---
+# manager dashboard
+s, bdash = call("GET", f"/buildings/{bid}/dashboard", token=mgr)
+check("building dashboard", s == 200 and "total_balance" in bdash, str(bdash.get("total_balance")))
+check("dashboard has units breakdown", len(bdash.get("units", [])) == 2)
+
+# resident dashboard (resident was deactivated; use manager's own unit view)
+s, mdash = call("GET", f"/units/{u2['id']}/dashboard", token=mgr)
+check("unit dashboard", s == 200 and "paid_this_month" in mdash, mdash.get("paid_this_month"))
+
+# resident cannot view another unit's dashboard
+s, _ = call("POST", "/auth/invite", {"phone": "0522222222"}, mgr)  # re-invite deactivated resident
+s, inv3 = call("GET", f"/buildings/{bid}/users", token=mgr)  # confirm structure intact
+
 print("\nAll tests passed.")

@@ -35,12 +35,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                l10n.appName,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.displaySmall,
+              Image.asset(
+                'assets/logo_splash.png',
+                height: 180,
+                fit: BoxFit.contain,
               ),
-              const SizedBox(height: 48),
+              const SizedBox(height: 32),
               TextField(
                 controller: _phoneCtrl,
                 keyboardType: TextInputType.phone,

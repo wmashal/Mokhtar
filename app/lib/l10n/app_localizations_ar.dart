@@ -154,4 +154,64 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get retry => 'إعادة المحاولة';
+
+  @override
+  String get dashboard => 'لوحة التحكم';
+
+  @override
+  String get thisMonth => 'هذا الشهر';
+
+  @override
+  String get paidThisMonth => 'المدفوع هذا الشهر';
+
+  @override
+  String get chargedThisMonth => 'الرسوم هذا الشهر';
+
+  @override
+  String get totalCollected => 'إجمالي المحصَّل';
+
+  @override
+  String get totalCharged => 'إجمالي الرسوم';
+
+  @override
+  String get expensesThisMonth => 'المصاريف هذا الشهر';
+
+  @override
+  String get buildingBalance => 'رصيد المبنى';
+
+  @override
+  String get debtors => 'المتأخرون';
+
+  @override
+  String get tapForDetails => 'اضغط للتفاصيل';
+
+  @override
+  String get unitDetails => 'تفاصيل الشقق';
+
+  @override
+  String get balance => 'الرصيد';
+
+  @override
+  String get addUnit => 'إضافة شقة';
+
+  @override
+  String get addResident => 'إضافة ساكن';
+
+  @override
+  String get issueCode => 'إصدار رمز';
+
+  @override
+  String get copy => 'نسخ';
+
+  @override
+  String get optional => 'اختياري';
+
+  @override
+  String get open => 'مفتوحة';
+
+  @override
+  String get issued => 'صدرت';
+
+  @override
+  String get saved => 'تم الحفظ';
 }

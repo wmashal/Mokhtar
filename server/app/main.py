@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.api.routes import announcements, auth, buildings, finance, meetings, meters, users
+from app.api.routes import announcements, auth, buildings, dashboard, finance, meetings, meters, users
 from app.core.config import settings
 from app.jobs.scheduler import start_scheduler
 
@@ -13,6 +13,7 @@ def _startup():
 
 app.include_router(auth.router)
 app.include_router(buildings.router)
+app.include_router(dashboard.router)
 app.include_router(finance.router)
 app.include_router(meters.router)
 app.include_router(meetings.router)
