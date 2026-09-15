@@ -36,6 +36,7 @@ class BuildingCreate(BaseModel):
     address: str = ""
     monthly_fee: Decimal = Decimal(0)
     water_unit_price: Decimal = Decimal(0)
+    electricity_unit_price: Decimal = Decimal(0)
 
 
 class BuildingOut(BaseModel):
@@ -44,10 +45,19 @@ class BuildingOut(BaseModel):
     address: str
     monthly_fee: Decimal
     water_unit_price: Decimal
+    electricity_unit_price: Decimal
     currency: str
 
     class Config:
         from_attributes = True
+
+
+class BuildingUpdate(BaseModel):
+    name: Optional[str] = None
+    address: Optional[str] = None
+    monthly_fee: Optional[Decimal] = None
+    water_unit_price: Optional[Decimal] = None
+    electricity_unit_price: Optional[Decimal] = None
 
 
 class UnitCreate(BaseModel):
@@ -58,7 +68,9 @@ class UnitCreate(BaseModel):
 
 
 class UnitUpdate(BaseModel):
+    unit_number: Optional[str] = None
     resident_name: Optional[str] = None
+    phone: Optional[str] = None
     monthly_fee: Optional[Decimal] = None
 
 
@@ -119,6 +131,8 @@ class MeterRoundCreate(BaseModel):
 class ReadingCreate(BaseModel):
     unit_id: int
     current_value: Decimal
+    photo_path: Optional[str] = None       # meter photo — proof
+    bill_photo_path: Optional[str] = None  # water bill — proof
 
 
 class ReadingOut(BaseModel):
@@ -129,6 +143,7 @@ class ReadingOut(BaseModel):
     consumption: Decimal
     cost: Decimal
     photo_path: Optional[str]
+    bill_photo_path: Optional[str]
 
     class Config:
         from_attributes = True
@@ -139,6 +154,44 @@ class MeterRoundOut(BaseModel):
     month: date
     status: RoundStatus
     readings: list[ReadingOut] = []
+
+    class Config:
+        from_attributes = True
+
+
+class PublicMeterCreate(BaseModel):
+    name: str
+    meter_type: str = "electricity"
+    unit_price: Decimal = Decimal(0)
+
+
+class PublicMeterOut(BaseModel):
+    id: int
+    name: str
+    meter_type: str
+    unit_price: Decimal
+
+    class Config:
+        from_attributes = True
+
+
+class PublicReadingCreate(BaseModel):
+    month: date
+    current_value: Decimal
+    photo_path: Optional[str] = None       # meter photo — proof
+    bill_photo_path: Optional[str] = None  # company bill — proof
+
+
+class PublicReadingOut(BaseModel):
+    id: int
+    meter_id: int
+    month: date
+    previous_value: Decimal
+    current_value: Decimal
+    consumption: Decimal
+    cost: Decimal
+    photo_path: Optional[str]
+    bill_photo_path: Optional[str]
 
     class Config:
         from_attributes = True

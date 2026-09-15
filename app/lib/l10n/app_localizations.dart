@@ -511,6 +511,174 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'تم الحفظ'**
   String get saved;
+
+  /// No description provided for @myMeters.
+  ///
+  /// In ar, this message translates to:
+  /// **'عداداتي'**
+  String get myMeters;
+
+  /// No description provided for @publicMeters.
+  ///
+  /// In ar, this message translates to:
+  /// **'العدادات العامة'**
+  String get publicMeters;
+
+  /// No description provided for @readingRounds.
+  ///
+  /// In ar, this message translates to:
+  /// **'جولات القراءة'**
+  String get readingRounds;
+
+  /// No description provided for @meterPrice.
+  ///
+  /// In ar, this message translates to:
+  /// **'سعر الوحدة'**
+  String get meterPrice;
+
+  /// No description provided for @unitShort.
+  ///
+  /// In ar, this message translates to:
+  /// **'وحدة'**
+  String get unitShort;
+
+  /// No description provided for @addReading.
+  ///
+  /// In ar, this message translates to:
+  /// **'إضافة قراءة'**
+  String get addReading;
+
+  /// No description provided for @addPublicMeter.
+  ///
+  /// In ar, this message translates to:
+  /// **'إضافة عداد عام'**
+  String get addPublicMeter;
+
+  /// No description provided for @meterName.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسم العداد'**
+  String get meterName;
+
+  /// No description provided for @defaultPublicMeterName.
+  ///
+  /// In ar, this message translates to:
+  /// **'عداد كهرباء الإنارة العامة'**
+  String get defaultPublicMeterName;
+
+  /// No description provided for @settings.
+  ///
+  /// In ar, this message translates to:
+  /// **'الإعدادات'**
+  String get settings;
+
+  /// No description provided for @waterPrice.
+  ///
+  /// In ar, this message translates to:
+  /// **'سعر المتر المكعب للمياه'**
+  String get waterPrice;
+
+  /// No description provided for @electricityPrice.
+  ///
+  /// In ar, this message translates to:
+  /// **'سعر كيلوواط الكهرباء'**
+  String get electricityPrice;
+
+  /// No description provided for @buildingAccount.
+  ///
+  /// In ar, this message translates to:
+  /// **'حساب المبنى'**
+  String get buildingAccount;
+
+  /// No description provided for @editUnit.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعديل الشقة'**
+  String get editUnit;
+
+  /// No description provided for @deleteUnit.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف الشقة'**
+  String get deleteUnit;
+
+  /// No description provided for @deleteUnitConfirm.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف هذه الشقة نهائياً؟'**
+  String get deleteUnitConfirm;
+
+  /// No description provided for @unitDeleteBlocked.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا يمكن حذف الشقة: لديها سجل مالي أو قراءات'**
+  String get unitDeleteBlocked;
+
+  /// No description provided for @phoneTaken.
+  ///
+  /// In ar, this message translates to:
+  /// **'رقم الهاتف مسجّل مسبقاً'**
+  String get phoneTaken;
+
+  /// No description provided for @meterPhoto.
+  ///
+  /// In ar, this message translates to:
+  /// **'صورة العداد'**
+  String get meterPhoto;
+
+  /// No description provided for @billPhoto.
+  ///
+  /// In ar, this message translates to:
+  /// **'صورة الفاتورة'**
+  String get billPhoto;
+
+  /// No description provided for @tapToAttach.
+  ///
+  /// In ar, this message translates to:
+  /// **'اضغط لإرفاق صورة'**
+  String get tapToAttach;
+
+  /// No description provided for @userManagement.
+  ///
+  /// In ar, this message translates to:
+  /// **'إدارة المستخدمين'**
+  String get userManagement;
+
+  /// No description provided for @addUser.
+  ///
+  /// In ar, this message translates to:
+  /// **'إضافة مستخدم'**
+  String get addUser;
+
+  /// No description provided for @makeManager.
+  ///
+  /// In ar, this message translates to:
+  /// **'ترقية إلى مختار'**
+  String get makeManager;
+
+  /// No description provided for @makeResident.
+  ///
+  /// In ar, this message translates to:
+  /// **'تنزيل إلى مقيم'**
+  String get makeResident;
+
+  /// No description provided for @deactivateUser.
+  ///
+  /// In ar, this message translates to:
+  /// **'إيقاف الدخول'**
+  String get deactivateUser;
+
+  /// No description provided for @managerRole.
+  ///
+  /// In ar, this message translates to:
+  /// **'مختار'**
+  String get managerRole;
+
+  /// No description provided for @residentRole.
+  ///
+  /// In ar, this message translates to:
+  /// **'مقيم'**
+  String get residentRole;
 }
 
 class _AppLocalizationsDelegate

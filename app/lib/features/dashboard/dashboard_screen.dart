@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/app_localizations.dart';
 
-import '../auth/auth_provider.dart';
 import 'dashboard_provider.dart';
 
 class DashboardScreen extends ConsumerWidget {
@@ -11,14 +10,12 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final auth = ref.watch(authProvider).value;
-    final isManager = auth?.isManager == true;
     final myDash = ref.watch(myDashboardProvider);
 
     return RefreshIndicator(
       onRefresh: () async {
         ref.invalidate(myDashboardProvider);
-        if (isManager) ref.invalidate(buildingDashboardProvider);
+        ref.invalidate(buildingDashboardProvider);
       },
       child: ListView(
         padding: const EdgeInsets.all(16),
@@ -31,7 +28,12 @@ class DashboardScreen extends ConsumerWidget {
                 child: Center(child: CircularProgressIndicator()),
               ),
             ),
-            error: (_, _) => Card(child: ListTile(title: Text(l10n.error))),
+                  error: (e, _) => Card(
+                        child: ListTile(
+                          title: Text(l10n.error),
+                          subtitle: Text('$e'),
+                        ),
+                      ),
             data: (d) {
               final balance = double.tryParse(d.balance) ?? 0;
               final isDebt = balance < 0;
@@ -74,8 +76,8 @@ class DashboardScreen extends ConsumerWidget {
             },
           ),
 
-          // ---- Manager: building totals ----
-          if (isManager) ...[
+          // ---- Building totals (visible to every resident — transparency) ----
+          ...[
             const SizedBox(height: 16),
             Text(l10n.buildingStatement,
                 style: Theme.of(context).textTheme.titleLarge),
@@ -87,7 +89,12 @@ class DashboardScreen extends ConsumerWidget {
                       child: Center(child: CircularProgressIndicator()),
                     ),
                   ),
-                  error: (_, _) => Card(child: ListTile(title: Text(l10n.error))),
+            error: (e, _) => Card(
+              child: ListTile(
+                title: Text(l10n.error),
+                subtitle: Text('$e'),
+              ),
+            ),
                   data: (b) => Column(
                     children: [
                       Row(

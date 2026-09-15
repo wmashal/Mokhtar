@@ -3,9 +3,12 @@ from sqlalchemy.orm import Session
 
 from app.core.security import get_current_user, require_manager
 from app.db.session import get_db
-from app.models.models import Building, Unit, User, Role
+from app.models.models import (
+    Building, InviteCode, MeetingRsvp, MeterReading, PublicMeter, Role,
+    Transaction, Unit, User,
+)
 from app.schemas.schemas import (
-    BuildingCreate, BuildingOut, UnitCreate, UnitOut, UnitUpdate,
+    BuildingCreate, BuildingOut, BuildingUpdate, UnitCreate, UnitOut, UnitUpdate,
 )
 
 router = APIRouter(tags=["building"])
@@ -30,6 +33,31 @@ def get_building(
     building = db.get(Building, building_id)
     if not building:
         raise HTTPException(404, "Building not found")
+    return building
+
+
+@router.patch("/buildings/{building_id}", response_model=BuildingOut)
+def update_building(
+    building_id: int,
+    body: BuildingUpdate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_manager),
+):
+    """Manager updates building settings — e.g. water/electricity prices.
+    A new electricity price becomes the price of all public electricity meters."""
+    building = db.get(Building, building_id)
+    if not building:
+        raise HTTPException(404, "Building not found")
+    updates = body.model_dump(exclude_unset=True)
+    for field, value in updates.items():
+        setattr(building, field, value)
+    if "electricity_unit_price" in updates:
+        db.query(PublicMeter).filter(
+            PublicMeter.building_id == building_id,
+            PublicMeter.meter_type == "electricity",
+        ).update({PublicMeter.unit_price: building.electricity_unit_price})
+    db.commit()
+    db.refresh(building)
     return building
 
 
@@ -116,15 +144,64 @@ def update_unit(
     db: Session = Depends(get_db),
     _: User = Depends(require_manager),
 ):
-    """Mokhtar updates a unit — e.g., a custom monthly fee."""
+    """Mokhtar updates a unit: number, resident, phone, custom monthly fee.
+    A phone change also moves the resident's login to the new number."""
     unit = db.get(Unit, unit_id)
     if not unit:
         raise HTTPException(404, "Unit not found")
-    for field, value in body.model_dump(exclude_unset=True).items():
+    updates = body.model_dump(exclude_unset=True)
+    new_phone = updates.get("phone")
+    if new_phone and new_phone != unit.phone:
+        if db.query(Unit).filter(Unit.phone == new_phone).first():
+            raise HTTPException(409, "Phone number already registered")
+    for field, value in updates.items():
         setattr(unit, field, value)
+    if new_phone and unit.user:
+        unit.user.phone = unit.phone
     db.commit()
     db.refresh(unit)
     return unit
+
+
+@router.delete("/units/{unit_id}")
+def delete_unit(
+    unit_id: int,
+    db: Session = Depends(get_db),
+    current: User = Depends(require_manager),
+):
+    """Mokhtar removes a unit created by mistake. Blocked when the unit has
+    transactions or meter readings (history is never destroyed) or when its
+    user is the building's last manager."""
+    unit = db.get(Unit, unit_id)
+    if not unit:
+        raise HTTPException(404, "Unit not found")
+
+    has_history = (
+        db.query(Transaction).filter(Transaction.unit_id == unit_id).first()
+        or db.query(MeterReading).filter(MeterReading.unit_id == unit_id).first()
+    )
+    if has_history:
+        raise HTTPException(
+            409, "Unit has financial history — it cannot be deleted")
+
+    user = unit.user
+    if user and user.role == Role.manager:
+        managers = (
+            db.query(User)
+            .join(Unit)
+            .filter(Unit.building_id == unit.building_id, User.role == Role.manager)
+            .count()
+        )
+        if managers <= 1:
+            raise HTTPException(409, "Cannot delete the last manager's unit")
+
+    if user:
+        db.query(InviteCode).filter(InviteCode.phone == user.phone).delete()
+        db.query(MeetingRsvp).filter(MeetingRsvp.user_id == user.id).delete()
+        db.delete(user)
+    db.delete(unit)
+    db.commit()
+    return {"ok": True, "deleted_unit_id": unit_id}
 
 
 @router.get("/buildings/{building_id}/units", response_model=list[UnitOut])

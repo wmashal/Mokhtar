@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     invite_code_expire_days: int = 7
     invite_code_max_attempts: int = 5
     default_currency: str = "ILS"
+    photos_dir: str = "photos"  # meter/bill/receipt photos (volume-mounted on Pi)
 
     class Config:
         env_file = ".env"

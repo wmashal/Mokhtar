@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.core.security import get_current_user, require_manager
+from app.core.security import get_current_user
 from app.db.session import get_db
 from app.models.models import Transaction, TxType, Unit, User
 
@@ -67,9 +67,9 @@ def my_dashboard(
 def building_dashboard(
     building_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(require_manager),
+    _: User = Depends(get_current_user),
 ):
-    """Manager dashboard: building totals + per-unit breakdown."""
+    """Building totals + per-unit breakdown — visible to every resident (transparency)."""
     start, end = _month_range(date.today().replace(day=1))
 
     units = db.query(Unit).filter(Unit.building_id == building_id).all()

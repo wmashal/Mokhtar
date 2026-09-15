@@ -1,6 +1,7 @@
 services:
   db:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_USER: mokhtar
       POSTGRES_PASSWORD: mokhtar
@@ -15,12 +16,16 @@ services:
 
   api:
     build: .
+    restart: unless-stopped
     ports:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql://mokhtar:mokhtar@db:5432/mokhtar
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
       DEFAULT_CURRENCY: ILS
+      PHOTOS_DIR: /data/photos
+    volumes:
+      - photos:/data/photos
     depends_on:
       db:
         condition: service_healthy
@@ -30,3 +35,4 @@ services:
 
 volumes:
   pgdata:
+  photos:

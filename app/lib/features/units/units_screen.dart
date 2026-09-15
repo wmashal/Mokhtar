@@ -1,10 +1,11 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/app_localizations.dart';
 
 import '../../core/api/api_client.dart';
-import '../auth/auth_provider.dart';
+import 'unit_form.dart';
 import 'units_provider.dart';
 
 class UnitsScreen extends ConsumerWidget {
@@ -53,7 +54,7 @@ class UnitsScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         icon: const Icon(Icons.add),
         label: Text(l10n.addUnit),
-        onPressed: () => _showAddUnit(context, ref, l10n),
+        onPressed: () => showUnitFormSheet(context, ref),
       ),
     );
   }
@@ -62,7 +63,7 @@ class UnitsScreen extends ConsumerWidget {
       AppLocalizations l10n, Unit u) {
     showModalBottomSheet(
       context: context,
-      builder: (_) => SafeArea(
+      builder: (sheetCtx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -77,14 +78,66 @@ class UnitsScreen extends ConsumerWidget {
               title: Text(l10n.issueCode),
               subtitle: Text(l10n.shareCodeHint),
               onTap: () async {
-                Navigator.pop(context);
+                Navigator.pop(sheetCtx);
                 await _showInviteCode(context, ref, l10n, u);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.edit_outlined),
+              title: Text(l10n.editUnit),
+              onTap: () {
+                Navigator.pop(sheetCtx);
+                showUnitFormSheet(context, ref, unit: u);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline, color: Colors.red),
+              title:
+                  Text(l10n.deleteUnit, style: const TextStyle(color: Colors.red)),
+              onTap: () {
+                Navigator.pop(sheetCtx);
+                _confirmDelete(context, ref, l10n, u);
               },
             ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref,
+      AppLocalizations l10n, Unit u) async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dctx) => AlertDialog(
+        title: Text(l10n.deleteUnit),
+        content: Text('${u.unitNumber} — ${u.residentName}\n${l10n.deleteUnitConfirm}'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dctx, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(dctx, true),
+            child: Text(l10n.deleteUnit),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    try {
+      await ref.read(apiClientProvider).delete('/units/${u.id}');
+      ref.invalidate(unitsProvider);
+    } on DioException catch (e) {
+      if (context.mounted) {
+        final msg =
+            e.response?.statusCode == 409 ? l10n.unitDeleteBlocked : l10n.error;
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(msg)));
+      }
+    }
   }
 
   Future<void> _showInviteCode(BuildContext context, WidgetRef ref,
@@ -100,14 +153,14 @@ class UnitsScreen extends ConsumerWidget {
       Navigator.pop(context); // dismiss loading
       showDialog(
         context: context,
-        builder: (_) => AlertDialog(
+        builder: (dctx) => AlertDialog(
           title: Text(l10n.inviteCode),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 code,
-                style: Theme.of(context)
+                style: Theme.of(dctx)
                     .textTheme
                     .displayMedium
                     ?.copyWith(letterSpacing: 8, fontWeight: FontWeight.bold),
@@ -125,7 +178,7 @@ class UnitsScreen extends ConsumerWidget {
               },
             ),
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dctx),
               child: Text(l10n.confirm),
             ),
           ],
@@ -137,85 +190,5 @@ class UnitsScreen extends ConsumerWidget {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(l10n.error)));
     }
-  }
-
-  void _showAddUnit(BuildContext context, WidgetRef ref, AppLocalizations l10n) {
-    final numberCtrl = TextEditingController();
-    final nameCtrl = TextEditingController();
-    final phoneCtrl = TextEditingController();
-    final feeCtrl = TextEditingController();
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          left: 24, right: 24, top: 24,
-          bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(l10n.addUnit, style: Theme.of(ctx).textTheme.titleLarge),
-            const SizedBox(height: 16),
-            TextField(
-              controller: numberCtrl,
-              decoration: InputDecoration(
-                  labelText: l10n.unitNumber, border: const OutlineInputBorder()),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: nameCtrl,
-              decoration: InputDecoration(
-                  labelText: l10n.residentName, border: const OutlineInputBorder()),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: phoneCtrl,
-              keyboardType: TextInputType.phone,
-              decoration: InputDecoration(
-                  labelText: l10n.phoneNumber, border: const OutlineInputBorder()),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: feeCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(
-                labelText: '${l10n.monthlyFee} (${l10n.optional})',
-                border: const OutlineInputBorder(),
-                suffixText: '₪',
-              ),
-            ),
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: () async {
-                final auth = ref.read(authProvider).value;
-                try {
-                  await ref.read(apiClientProvider).post(
-                    '/buildings/${auth!.buildingId}/units',
-                    data: {
-                      'unit_number': numberCtrl.text.trim(),
-                      'resident_name': nameCtrl.text.trim(),
-                      'phone': phoneCtrl.text.trim(),
-                      if (feeCtrl.text.trim().isNotEmpty)
-                        'monthly_fee': feeCtrl.text.trim(),
-                    },
-                  );
-                  ref.invalidate(unitsProvider);
-                  if (ctx.mounted) Navigator.pop(ctx);
-                } catch (e) {
-                  if (ctx.mounted) {
-                    ScaffoldMessenger.of(ctx)
-                        .showSnackBar(SnackBar(content: Text(l10n.error)));
-                  }
-                }
-              },
-              child: Text(l10n.save),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

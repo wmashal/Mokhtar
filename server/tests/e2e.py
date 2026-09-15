@@ -184,8 +184,164 @@ check("dashboard has units breakdown", len(bdash.get("units", [])) == 2)
 s, mdash = call("GET", f"/units/{u2['id']}/dashboard", token=mgr)
 check("unit dashboard", s == 200 and "paid_this_month" in mdash, mdash.get("paid_this_month"))
 
-# resident cannot view another unit's dashboard
-s, _ = call("POST", "/auth/invite", {"phone": "0522222222"}, mgr)  # re-invite deactivated resident
-s, inv3 = call("GET", f"/buildings/{bid}/users", token=mgr)  # confirm structure intact
+# --- building config: update water price (manager) ---
+s, bupd = call("PATCH", f"/buildings/{bid}", {"water_unit_price": 3.0}, mgr)
+check("update water price", s == 200 and bupd["water_unit_price"] == "3.0000", bupd.get("water_unit_price"))
+
+# --- resident meter history (manager views any unit) ---
+s, hist = call("GET", f"/units/{u2['id']}/meter-readings", token=mgr)
+check("meter history has 2 readings", s == 200 and len(hist) == 2, str(len(hist)))
+check("history has month+consumption+cost",
+      all(k in hist[0] for k in ("month", "previous_value", "current_value", "consumption", "cost")))
+
+# --- public meter (shared electricity) ---
+s, pm = call("POST", f"/buildings/{bid}/public-meters",
+             {"name": "عداد كهرباء الإنارة", "meter_type": "electricity", "unit_price": 0.65}, mgr)
+check("create public meter", s == 200 and pm["unit_price"] == "0.6500", pm.get("unit_price"))
+
+s, pr1 = call("POST", f"/public-meters/{pm['id']}/readings",
+              {"month": "2026-09-01", "current_value": 5000}, mgr)
+check("first public reading = baseline (cost 0)", s == 200 and pr1["cost"] == "0.00", str(pr1))
+
+s, pr2 = call("POST", f"/public-meters/{pm['id']}/readings",
+              {"month": "2026-10-01", "current_value": 5200}, mgr)
+check("public reading consumption=200, cost=130",
+      s == 200 and pr2["consumption"] == "200.00" and pr2["cost"] == "130.00",
+      f"{pr2.get('consumption')} {pr2.get('cost')}")
+
+# fresh resident (new unit) for permission checks
+s, u3 = call("POST", f"/buildings/{bid}/units",
+             {"unit_number": "3", "resident_name": "Sara", "phone": "0533333333"}, mgr)
+s, inv3 = call("POST", "/auth/invite", {"phone": "0533333333"}, mgr)
+s, rl3 = call("POST", "/auth/login", {"phone": "0533333333", "code": inv3["code"]})
+res3 = rl3["access_token"]
+
+s, _ = call("PATCH", f"/buildings/{bid}", {"water_unit_price": 9.9}, res3)
+check("resident cannot update building (403)", s == 403)
+
+s, pml = call("GET", f"/buildings/{bid}/public-meters", token=res3)
+check("resident sees public meters", s == 200 and len(pml) == 1 and len(pml[0]["readings"]) == 2)
+
+s, _ = call("POST", f"/public-meters/{pm['id']}/readings",
+            {"month": "2026-11-01", "current_value": 5300}, res3)
+check("resident cannot add public reading (403)", s == 403)
+
+s, _ = call("GET", "/units/1/meter-readings", token=res3)
+check("resident cannot read other's history (403)", s == 403)
+
+# public meter cost recorded as building expense
+s, txs = call("GET", f"/buildings/{bid}/transactions", token=mgr)
+elec = [t for t in txs if t["category"] == "electricity"]
+check("public reading cost recorded as expense", len(elec) >= 1 and elec[0]["amount"] == "130.00", str(elec[:1]))
+
+# --- electricity price is building-level config ---
+s, bupd = call("PATCH", f"/buildings/{bid}", {"electricity_unit_price": 0.7}, mgr)
+check("update electricity price", s == 200 and bupd["electricity_unit_price"] == "0.7000",
+      bupd.get("electricity_unit_price"))
+
+# propagates to existing electricity meters (raw-dict endpoint returns a number)
+s, pml = call("GET", f"/buildings/{bid}/public-meters", token=mgr)
+check("meter price updated from settings", float(pml[0]["unit_price"]) == 0.7, pml[0]["unit_price"])
+
+# new electricity meter without explicit price inherits building price
+s, pm2 = call("POST", f"/buildings/{bid}/public-meters", {"name": "عداد المصعد"}, mgr)
+check("new meter inherits building electricity price", s == 200 and pm2["unit_price"] == "0.7000",
+      pm2.get("unit_price"))
+
+# --- photo upload: meter + bill attached to readings, viewable by all ---
+def upload(path, token):
+    boundary = "----e2eboundary"
+    content = b"\xff\xd8\xff\xe0fake-jpeg-bytes"
+    body = (
+        f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="bill.jpg"\r\n'
+        f"Content-Type: image/jpeg\r\n\r\n"
+    ).encode() + content + f"\r\n--{boundary}--\r\n".encode()
+    req = urllib.request.Request(B + path, data=body, method="POST")
+    req.add_header("Content-Type", f"multipart/form-data; boundary={boundary}")
+    req.add_header("Authorization", f"Bearer {token}")
+    try:
+        with urllib.request.urlopen(req) as r:
+            return r.status, json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        return e.code, json.loads(e.read())
+
+s, up1 = upload("/photos", mgr)
+check("manager uploads meter photo", s == 200 and bool(up1.get("path")), str(up1))
+meter_photo = up1["path"]
+s, up2 = upload("/photos", mgr)
+bill_photo = up2["path"]
+
+s, _ = upload("/photos", res3)
+check("resident cannot upload photos (403)", s == 403)
+
+# public reading with meter + bill photos
+s, pr3 = call("POST", f"/public-meters/{pm['id']}/readings",
+              {"month": "2026-11-01", "current_value": 5300,
+               "photo_path": meter_photo, "bill_photo_path": bill_photo}, mgr)
+check("public reading with photos (cost at new price 100*0.7=70)",
+      s == 200 and pr3["cost"] == "70.00" and pr3["photo_path"] == meter_photo
+      and pr3["bill_photo_path"] == bill_photo, str(pr3))
+
+# water reading with photos
+s, r3 = call("POST", f"/buildings/{bid}/meter-rounds", {"month": "2026-12-01"}, mgr)
+s, wr = call("POST", f"/meter-rounds/{r3['id']}/readings",
+             {"unit_id": u2["id"], "current_value": 1100,
+              "photo_path": meter_photo, "bill_photo_path": bill_photo}, mgr)
+check("water reading stores photos", s == 200 and wr["photo_path"] == meter_photo
+      and wr["bill_photo_path"] == bill_photo)
+
+# every resident can view photos (transparency)
+def get_photo(name, token):
+    req = urllib.request.Request(f"{B}/photos/{name}")
+    req.add_header("Authorization", f"Bearer {token}")
+    try:
+        with urllib.request.urlopen(req) as r:
+            return r.status
+    except urllib.error.HTTPError as e:
+        return e.code
+
+check("resident views meter photo", get_photo(meter_photo, res3) == 200)
+check("resident views bill photo", get_photo(bill_photo, res3) == 200)
+check("bad photo name rejected", get_photo("..%2F..%2Fetc", res3) in (400, 404))
+check("missing photo 404", get_photo("nonexistent.jpg", res3) == 404)
+
+# my history returns photo fields
+s, hist = call("GET", f"/units/{u2['id']}/meter-readings", token=mgr)
+dec = [h for h in hist if h["month"] == "2026-12-01"]
+check("history includes bill photo", dec and dec[0]["bill_photo_path"] == bill_photo)
+
+# --- transparency: building dashboard visible to residents ---
+s, bd = call("GET", f"/buildings/{bid}/dashboard", token=res3)
+check("resident sees building dashboard", s == 200 and "units" in bd)
+
+# --- unit edit ---
+s, ue = call("PATCH", f"/units/{u2['id']}",
+             {"resident_name": "أبو أحمد المعدّل", "monthly_fee": 70}, mgr)
+check("edit unit name + custom fee", s == 200 and ue["resident_name"] == "أبو أحمد المعدّل"
+      and ue["monthly_fee"] == "70.00", str(ue))
+
+s, _ = call("PATCH", f"/units/{u2['id']}", {"phone": "0522222221"}, mgr)
+check("phone conflict rejected (409)", s == 409)
+
+# phone change on a unit that still has a user (Sara) moves the login too
+s, ue2 = call("PATCH", f"/units/{u3['id']}", {"phone": "0555555555"}, mgr)
+check("phone change ok", s == 200 and ue2["phone"] == "0555555555")
+s, users = call("GET", f"/buildings/{bid}/users", token=mgr)
+check("user login moved to new phone",
+      any(u["phone"] == "0555555555" for u in users), str([u["phone"] for u in users]))
+
+# --- unit delete ---
+s, _ = call("DELETE", f"/units/{u2['id']}", token=mgr)
+check("unit with history cannot be deleted (409)", s == 409)
+
+s, _ = call("DELETE", "/units/1", token=mgr)
+check("last manager's unit cannot be deleted (409)", s == 409)
+
+s, dl = call("DELETE", f"/units/{u3['id']}", token=mgr)
+check("empty unit deleted", s == 200 and dl.get("ok") is True, str(dl))
+s, units_after = call("GET", f"/buildings/{bid}/units", token=mgr)
+check("unit gone from list", all(u["id"] != u3["id"] for u in units_after))
+s, _ = call("GET", f"/buildings/{bid}", token=res3)
+check("deleted unit's user token is dead (401)", s == 401)
 
 print("\nAll tests passed.")

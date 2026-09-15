@@ -10,6 +10,7 @@ import '../units/units_screen.dart';
 import '../meters/meters_screen.dart';
 import '../meetings/meetings_screen.dart';
 import '../announcements/announcements_screen.dart';
+import '../settings/settings_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -28,15 +29,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final isManager = auth?.isManager == true;
 
     // Manager: Dashboard, My statement, Building, Units, Meters, Meetings, Announcements
-    // Resident: Dashboard, My statement, Building, Meetings, Announcements
+    // Resident: Dashboard, My statement, Building, Meters, Meetings, Announcements
     final destinations = <NavigationDestination>[
       NavigationDestination(icon: const Icon(Icons.dashboard_outlined), label: l10n.dashboard),
       NavigationDestination(icon: const Icon(Icons.person_outline), label: l10n.myStatement),
-      NavigationDestination(icon: const Icon(Icons.account_balance_outlined), label: l10n.buildingStatement),
+      NavigationDestination(icon: const Icon(Icons.account_balance_outlined), label: l10n.buildingAccount),
       if (isManager)
         NavigationDestination(icon: const Icon(Icons.apartment), label: l10n.units),
-      if (isManager)
-        NavigationDestination(icon: const Icon(Icons.water_drop_outlined), label: l10n.meters),
+      NavigationDestination(icon: const Icon(Icons.water_drop_outlined), label: l10n.meters),
       NavigationDestination(icon: const Icon(Icons.groups_outlined), label: l10n.meetings),
       NavigationDestination(icon: const Icon(Icons.campaign_outlined), label: l10n.announcements),
     ];
@@ -49,7 +49,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       const FinanceScreen(myOnly: true),
       const FinanceScreen(myOnly: false),
       if (isManager) const UnitsScreen(),
-      if (isManager) const MetersScreen(),
+      const MetersScreen(),
       const MeetingsScreen(),
       const AnnouncementsScreen(),
     ];
@@ -58,6 +58,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       appBar: AppBar(
         title: Text(l10n.appName),
         actions: [
+          if (isManager)
+            IconButton(
+              icon: const Icon(Icons.settings_outlined),
+              tooltip: l10n.settings,
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              ),
+            ),
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: l10n.logout,

@@ -53,6 +53,8 @@ def verify_and_login(db: Session, phone: str, code: str) -> tuple[User, str]:
         {
             "sub": str(user.id),
             "role": user.role.value,
+            "unit_id": user.unit_id,
+            "building_id": user.unit.building_id,
             "exp": datetime.utcnow() + timedelta(days=settings.jwt_expire_days),
         },
         settings.jwt_secret,

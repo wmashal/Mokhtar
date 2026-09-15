@@ -214,4 +214,88 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get saved => 'تم الحفظ';
+
+  @override
+  String get myMeters => 'عداداتي';
+
+  @override
+  String get publicMeters => 'العدادات العامة';
+
+  @override
+  String get readingRounds => 'جولات القراءة';
+
+  @override
+  String get meterPrice => 'سعر الوحدة';
+
+  @override
+  String get unitShort => 'وحدة';
+
+  @override
+  String get addReading => 'إضافة قراءة';
+
+  @override
+  String get addPublicMeter => 'إضافة عداد عام';
+
+  @override
+  String get meterName => 'اسم العداد';
+
+  @override
+  String get defaultPublicMeterName => 'عداد كهرباء الإنارة العامة';
+
+  @override
+  String get settings => 'الإعدادات';
+
+  @override
+  String get waterPrice => 'سعر المتر المكعب للمياه';
+
+  @override
+  String get electricityPrice => 'سعر كيلوواط الكهرباء';
+
+  @override
+  String get buildingAccount => 'حساب المبنى';
+
+  @override
+  String get editUnit => 'تعديل الشقة';
+
+  @override
+  String get deleteUnit => 'حذف الشقة';
+
+  @override
+  String get deleteUnitConfirm => 'حذف هذه الشقة نهائياً؟';
+
+  @override
+  String get unitDeleteBlocked => 'لا يمكن حذف الشقة: لديها سجل مالي أو قراءات';
+
+  @override
+  String get phoneTaken => 'رقم الهاتف مسجّل مسبقاً';
+
+  @override
+  String get meterPhoto => 'صورة العداد';
+
+  @override
+  String get billPhoto => 'صورة الفاتورة';
+
+  @override
+  String get tapToAttach => 'اضغط لإرفاق صورة';
+
+  @override
+  String get userManagement => 'إدارة المستخدمين';
+
+  @override
+  String get addUser => 'إضافة مستخدم';
+
+  @override
+  String get makeManager => 'ترقية إلى مختار';
+
+  @override
+  String get makeResident => 'تنزيل إلى مقيم';
+
+  @override
+  String get deactivateUser => 'إيقاف الدخول';
+
+  @override
+  String get managerRole => 'مختار';
+
+  @override
+  String get residentRole => 'مقيم';
 }

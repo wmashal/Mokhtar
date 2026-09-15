@@ -37,6 +37,7 @@ class Building(Base):
     address = Column(String(300), default="")
     monthly_fee = Column(Numeric(12, 2), nullable=False, default=0)
     water_unit_price = Column(Numeric(12, 4), nullable=False, default=0)
+    electricity_unit_price = Column(Numeric(12, 4), nullable=False, default=0)
     currency = Column(String(3), nullable=False, default="ILS")
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -106,6 +107,35 @@ class MeterRound(Base):
     readings = relationship("MeterReading", back_populates="round", cascade="all, delete-orphan")
 
 
+class PublicMeter(Base):
+    """Shared building meter (e.g. public-lighting electricity)."""
+    __tablename__ = "public_meters"
+    id = Column(Integer, primary_key=True)
+    building_id = Column(Integer, ForeignKey("buildings.id"), nullable=False)
+    name = Column(String(200), nullable=False)  # e.g. "عداد كهرباء الإنارة"
+    meter_type = Column(String(30), nullable=False, default="electricity")
+    unit_price = Column(Numeric(12, 4), nullable=False, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    readings = relationship("PublicMeterReading", back_populates="meter", cascade="all, delete-orphan")
+
+
+class PublicMeterReading(Base):
+    __tablename__ = "public_meter_readings"
+    id = Column(Integer, primary_key=True)
+    meter_id = Column(Integer, ForeignKey("public_meters.id"), nullable=False)
+    month = Column(Date, nullable=False)
+    previous_value = Column(Numeric(12, 2), nullable=False)
+    current_value = Column(Numeric(12, 2), nullable=False)
+    consumption = Column(Numeric(12, 2), nullable=False)
+    cost = Column(Numeric(12, 2), nullable=False)
+    photo_path = Column(String(500), nullable=True)      # meter photo — proof
+    bill_photo_path = Column(String(500), nullable=True)  # company bill — proof
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    meter = relationship("PublicMeter", back_populates="readings")
+
+
 class MeterReading(Base):
     __tablename__ = "meter_readings"
     id = Column(Integer, primary_key=True)
@@ -115,7 +145,8 @@ class MeterReading(Base):
     current_value = Column(Numeric(12, 2), nullable=False)
     consumption = Column(Numeric(12, 2), nullable=False)
     cost = Column(Numeric(12, 2), nullable=False)
-    photo_path = Column(String(500), nullable=True)
+    photo_path = Column(String(500), nullable=True)       # meter photo — proof
+    bill_photo_path = Column(String(500), nullable=True)  # water bill — proof
     created_at = Column(DateTime, default=datetime.utcnow)
 
     round = relationship("MeterRound", back_populates="readings")

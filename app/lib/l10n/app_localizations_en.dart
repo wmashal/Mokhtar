@@ -214,4 +214,89 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get saved => 'Saved';
+
+  @override
+  String get myMeters => 'My meters';
+
+  @override
+  String get publicMeters => 'Public meters';
+
+  @override
+  String get readingRounds => 'Reading rounds';
+
+  @override
+  String get meterPrice => 'Unit price';
+
+  @override
+  String get unitShort => 'unit';
+
+  @override
+  String get addReading => 'Add reading';
+
+  @override
+  String get addPublicMeter => 'Add public meter';
+
+  @override
+  String get meterName => 'Meter name';
+
+  @override
+  String get defaultPublicMeterName => 'Public lighting electricity meter';
+
+  @override
+  String get settings => 'Settings';
+
+  @override
+  String get waterPrice => 'Water price per m³';
+
+  @override
+  String get electricityPrice => 'Electricity price per kWh';
+
+  @override
+  String get buildingAccount => 'Building account';
+
+  @override
+  String get editUnit => 'Edit unit';
+
+  @override
+  String get deleteUnit => 'Delete unit';
+
+  @override
+  String get deleteUnitConfirm => 'Permanently delete this unit?';
+
+  @override
+  String get unitDeleteBlocked =>
+      'Cannot delete: the unit has financial history or readings';
+
+  @override
+  String get phoneTaken => 'Phone number already registered';
+
+  @override
+  String get meterPhoto => 'Meter photo';
+
+  @override
+  String get billPhoto => 'Bill photo';
+
+  @override
+  String get tapToAttach => 'Tap to attach a photo';
+
+  @override
+  String get userManagement => 'User management';
+
+  @override
+  String get addUser => 'Add user';
+
+  @override
+  String get makeManager => 'Promote to manager';
+
+  @override
+  String get makeResident => 'Demote to resident';
+
+  @override
+  String get deactivateUser => 'Deactivate login';
+
+  @override
+  String get managerRole => 'Manager';
+
+  @override
+  String get residentRole => 'Resident';
 }
