@@ -96,7 +96,7 @@ How it works:
 | App | **Flutter (Dart)** | One codebase → Android + iOS, excellent RTL support |
 | Backend | **FastAPI (Python)** or **Ktor (Kotlin)** | Lightweight REST/WebSocket API, runs great on Pi |
 | Database | **PostgreSQL** (SQLite acceptable for one building) | Reliable, relational — fits the data model |
-| Server hardware | **Raspberry Pi 5 (8GB) + SSD** | One building = tiny load; SSD because SD cards die |
+| Server hardware | **Raspberry Pi 4/5 (64-bit OS) + SSD** | One building = tiny load; 64-bit OS required; SSD because SD cards die |
 | Auth | **OTP via SMS gateway** (Twilio / local provider) | Phone-number-only login, self-hosted verification logic |
 | Photos | **Local storage on Pi SSD** | Meter and receipt photos |
 | Notifications | **Firebase Cloud Messaging** (free tier) | Push notifications — the only managed service |
