@@ -10,6 +10,7 @@ from app.models.models import (
 from app.schemas.schemas import (
     MeterRoundCreate, MeterRoundOut, PublicMeterCreate, PublicMeterOut,
     PublicReadingCreate, PublicReadingOut, ReadingCreate, ReadingOut,
+    ReadingUpdate,
 )
 
 router = APIRouter(tags=["meters"])
@@ -80,6 +81,69 @@ def add_reading(
     db.commit()
     db.refresh(reading)
     return reading
+
+
+@router.patch("/readings/{reading_id}", response_model=ReadingOut)
+def correct_reading(
+    reading_id: int,
+    body: ReadingUpdate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_manager),
+):
+    """Fix a mis-typed reading while its round is still open (nothing invoiced yet)."""
+    reading = db.get(MeterReading, reading_id)
+    if not reading:
+        raise HTTPException(404, "Reading not found")
+    if reading.round.status != RoundStatus.open:
+        raise HTTPException(409, "Round already issued")
+    if body.current_value < reading.previous_value:
+        raise HTTPException(422, "Current reading is lower than previous")
+
+    building = db.get(Building, reading.round.building_id)
+    reading.current_value = body.current_value
+    reading.consumption = body.current_value - reading.previous_value
+    reading.cost = reading.consumption * building.water_unit_price
+    if body.photo_path is not None:
+        reading.photo_path = body.photo_path
+    if body.bill_photo_path is not None:
+        reading.bill_photo_path = body.bill_photo_path
+    db.commit()
+    db.refresh(reading)
+    return reading
+
+
+@router.delete("/readings/{reading_id}")
+def delete_reading(
+    reading_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_manager),
+):
+    """Remove a mis-saved reading while its round is still open."""
+    reading = db.get(MeterReading, reading_id)
+    if not reading:
+        raise HTTPException(404, "Reading not found")
+    if reading.round.status != RoundStatus.open:
+        raise HTTPException(409, "Round already issued")
+    db.delete(reading)
+    db.commit()
+    return {"ok": True}
+
+
+@router.delete("/meter-rounds/{round_id}")
+def delete_round(
+    round_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_manager),
+):
+    """Discard an open round with all its readings. Issued rounds stay (invoices exist)."""
+    round_ = db.get(MeterRound, round_id)
+    if not round_:
+        raise HTTPException(404, "Round not found")
+    if round_.status != RoundStatus.open:
+        raise HTTPException(409, "Round already issued — invoices exist")
+    db.delete(round_)  # readings cascade
+    db.commit()
+    return {"ok": True}
 
 
 @router.post("/meter-rounds/{round_id}/issue", response_model=MeterRoundOut)

@@ -16,6 +16,15 @@ docker compose up -d --build
 python3 tests/e2e.py
 ```
 
+On the Pi, run them in a throwaway stack so the real database stays clean
+(fresh volumes, API on 8001, wiped afterwards):
+
+```bash
+API_PORT=8001 DB_PORT=15432 docker compose -p mokhtar-e2e up -d --build
+BASE_URL=http://localhost:8001 python3 tests/e2e.py
+docker compose -p mokhtar-e2e down -v
+```
+
 ## API overview
 
 | Flow | Endpoints |
@@ -26,10 +35,10 @@ python3 tests/e2e.py
 | Units | `POST/GET /buildings/{id}/units`, `PATCH /units/{id}` (number/name/phone/fee; phone change moves the login), `DELETE /units/{id}` (409 if financial history or last manager) |
 | Users | `GET /buildings/{id}/users`, `PATCH /users/{id}/role` (promote/demote co-managers), `DELETE /users/{id}` (removes login; unit + history kept) |
 | Finance | `POST/GET /buildings/{id}/transactions`, `GET /units/{id}/statement`, `POST /buildings/{id}/charges/run` (manual monthly charge trigger) |
-| Meters | `POST /buildings/{id}/meter-rounds` → `POST /meter-rounds/{id}/readings` (accepts `photo_path` + `bill_photo_path`) → `POST /meter-rounds/{id}/issue`; `GET /units/{id}/meter-readings` |
+| Meters | `POST /buildings/{id}/meter-rounds` → `POST /meter-rounds/{id}/readings` (accepts `photo_path` + `bill_photo_path`) → `POST /meter-rounds/{id}/issue`; corrections while open: `PATCH/DELETE /readings/{id}`, `DELETE /meter-rounds/{id}` (409 once issued); `GET /units/{id}/meter-readings` |
 | Public meters | `POST/GET /buildings/{id}/public-meters`, `POST /public-meters/{id}/readings` (photos supported; cost auto-recorded as building expense) |
 | Photos | `POST /photos` (manager upload, JPEG/PNG/WebP), `GET /photos/{name}` (any resident — transparency) |
-| Meetings | `POST/GET /buildings/{id}/meetings`, `POST /meetings/{id}/rsvp` |
+| Meetings | `POST/GET /buildings/{id}/meetings`, `PATCH/DELETE /meetings/{id}` (manager edit/cancel), `POST /meetings/{id}/rsvp` |
 | Announcements | `POST/GET /buildings/{id}/announcements` |
 
 ## Notes

@@ -679,6 +679,54 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'مقيم'**
   String get residentRole;
+
+  /// No description provided for @edit.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعديل'**
+  String get edit;
+
+  /// No description provided for @delete.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف'**
+  String get delete;
+
+  /// No description provided for @editMeeting.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعديل الاجتماع'**
+  String get editMeeting;
+
+  /// No description provided for @deleteMeetingConfirm.
+  ///
+  /// In ar, this message translates to:
+  /// **'إلغاء هذا الاجتماع نهائياً؟'**
+  String get deleteMeetingConfirm;
+
+  /// No description provided for @editReading.
+  ///
+  /// In ar, this message translates to:
+  /// **'تصحيح القراءة'**
+  String get editReading;
+
+  /// No description provided for @deleteReadingConfirm.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف هذه القراءة؟ يمكنك إدخالها من جديد'**
+  String get deleteReadingConfirm;
+
+  /// No description provided for @deleteRound.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف الجولة'**
+  String get deleteRound;
+
+  /// No description provided for @deleteRoundConfirm.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف الجولة وكل قراءاتها؟ لم تصدر فواتير بعد'**
+  String get deleteRoundConfirm;
 }
 
 class _AppLocalizationsDelegate

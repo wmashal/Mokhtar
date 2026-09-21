@@ -96,5 +96,13 @@
   "makeResident": "تنزيل إلى مقيم",
   "deactivateUser": "إيقاف الدخول",
   "managerRole": "مختار",
-  "residentRole": "مقيم"
+  "residentRole": "مقيم",
+  "edit": "تعديل",
+  "delete": "حذف",
+  "editMeeting": "تعديل الاجتماع",
+  "deleteMeetingConfirm": "إلغاء هذا الاجتماع نهائياً؟",
+  "editReading": "تصحيح القراءة",
+  "deleteReadingConfirm": "حذف هذه القراءة؟ يمكنك إدخالها من جديد",
+  "deleteRound": "حذف الجولة",
+  "deleteRoundConfirm": "حذف الجولة وكل قراءاتها؟ لم تصدر فواتير بعد"
 }

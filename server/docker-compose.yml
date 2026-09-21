@@ -3,7 +3,7 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     ports:
-      - "5432:5432"  # LAN access for DB clients — internal + building Wi-Fi only
+      - "${DB_PORT:-5432}:5432"  # LAN access for DB clients — internal + building Wi-Fi only
     environment:
       POSTGRES_USER: mokhtar
       POSTGRES_PASSWORD: mokhtar
@@ -20,7 +20,7 @@ services:
     build: .
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "${API_PORT:-8000}:8000"
     environment:
       DATABASE_URL: postgresql://mokhtar:mokhtar@db:5432/mokhtar
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}

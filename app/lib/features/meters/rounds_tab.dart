@@ -169,7 +169,6 @@ class _ReadingRoundScreenState extends ConsumerState<ReadingRoundScreen> {
   final Map<int, TextEditingController> _controllers = {};
   final Map<int, String> _meterPhotos = {};
   final Map<int, String> _billPhotos = {};
-  final Set<int> _saved = {};
   bool _issuing = false;
 
   @override
@@ -184,9 +183,32 @@ class _ReadingRoundScreenState extends ConsumerState<ReadingRoundScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final units = ref.watch(unitsProvider);
+    final rounds = ref.watch(meterRoundsProvider);
+
+    // This round's readings, straight from the server — so corrections and
+    // previously saved readings show up in any session.
+    MeterRound? round;
+    for (final r in rounds.value ?? const <MeterRound>[]) {
+      if (r.id == widget.roundId) {
+        round = r;
+        break;
+      }
+    }
+    final readingsByUnit = {
+      for (final rd in round?.readings ?? const <Reading>[]) rd.unitId: rd
+    };
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.month)),
+      appBar: AppBar(
+        title: Text(widget.month),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            tooltip: l10n.deleteRound,
+            onPressed: () => _deleteRound(l10n),
+          ),
+        ],
+      ),
       body: units.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text(l10n.error)),
@@ -194,48 +216,43 @@ class _ReadingRoundScreenState extends ConsumerState<ReadingRoundScreen> {
           itemCount: list.length,
           itemBuilder: (context, i) {
             final u = list[i];
+            final reading = readingsByUnit[u.id];
+            if (reading != null) return _savedTile(l10n, u, reading);
+
             final ctrl =
                 _controllers.putIfAbsent(u.id, () => TextEditingController());
-            final saved = _saved.contains(u.id);
             return ListTile(
-              leading: Icon(
-                saved ? Icons.check_circle : Icons.water_drop_outlined,
-                color: saved ? Colors.green : null,
-              ),
+              leading: const Icon(Icons.water_drop_outlined),
               title: Text('${u.unitNumber} — ${u.residentName}'),
-              subtitle: saved
-                  ? Text(l10n.saved)
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        TextField(
-                          controller: ctrl,
-                          keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true),
-                          decoration: InputDecoration(
-                            hintText: l10n.currentReading,
-                            isDense: true,
-                            border: const OutlineInputBorder(),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            _photoButton(u.id, l10n.meterPhoto,
-                                _meterPhotos[u.id], true),
-                            const SizedBox(width: 8),
-                            _photoButton(u.id, l10n.billPhoto,
-                                _billPhotos[u.id], false),
-                          ],
-                        ),
-                      ],
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: ctrl,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      hintText: l10n.currentReading,
+                      isDense: true,
+                      border: const OutlineInputBorder(),
                     ),
-              trailing: saved
-                  ? null
-                  : IconButton(
-                      icon: const Icon(Icons.save_outlined),
-                      onPressed: () => _saveReading(u.id, ctrl.text.trim()),
-                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      _photoButton(
+                          u.id, l10n.meterPhoto, _meterPhotos[u.id], true),
+                      const SizedBox(width: 8),
+                      _photoButton(
+                          u.id, l10n.billPhoto, _billPhotos[u.id], false),
+                    ],
+                  ),
+                ],
+              ),
+              trailing: IconButton(
+                icon: const Icon(Icons.save_outlined),
+                onPressed: () => _saveReading(u.id, ctrl.text.trim()),
+              ),
             );
           },
         ),
@@ -258,6 +275,150 @@ class _ReadingRoundScreenState extends ConsumerState<ReadingRoundScreen> {
         ),
       ),
     );
+  }
+
+  /// A unit whose reading is already saved — with correct/delete actions.
+  Widget _savedTile(AppLocalizations l10n, Unit u, Reading rd) {
+    return ListTile(
+      leading: const Icon(Icons.check_circle, color: Colors.green),
+      title: Text('${u.unitNumber} — ${u.residentName}'),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+              '${rd.previousValue} → ${rd.currentValue} • ${l10n.consumption}: ${rd.consumption} • ${l10n.cost}: ${rd.cost} ₪'),
+          if (rd.photoPath != null || rd.billPhotoPath != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Row(
+                children: [
+                  if (rd.photoPath != null) ...[
+                    PhotoThumb(name: rd.photoPath!, size: 40),
+                    const SizedBox(width: 8),
+                  ],
+                  if (rd.billPhotoPath != null)
+                    PhotoThumb(name: rd.billPhotoPath!, size: 40),
+                ],
+              ),
+            ),
+        ],
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.edit_outlined),
+            tooltip: l10n.edit,
+            onPressed: () => _editReading(l10n, rd),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            tooltip: l10n.delete,
+            onPressed: () => _deleteReading(l10n, rd),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _editReading(AppLocalizations l10n, Reading rd) async {
+    final ctrl = TextEditingController(text: rd.currentValue);
+    final save = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.editReading),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: InputDecoration(
+            labelText: l10n.currentReading,
+            border: const OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.save),
+          ),
+        ],
+      ),
+    );
+    final value = ctrl.text.trim();
+    ctrl.dispose();
+    if (save != true || value.isEmpty || !mounted) return;
+    try {
+      await ref.read(apiClientProvider).patch(
+        '/readings/${rd.id}',
+        data: {'current_value': value},
+      );
+      ref.invalidate(meterRoundsProvider);
+      ref.invalidate(myReadingsProvider);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.error)),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteReading(AppLocalizations l10n, Reading rd) async {
+    if (!await _confirm(l10n.deleteReadingConfirm)) return;
+    try {
+      await ref.read(apiClientProvider).delete('/readings/${rd.id}');
+      ref.invalidate(meterRoundsProvider);
+      ref.invalidate(myReadingsProvider);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.error)),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteRound(AppLocalizations l10n) async {
+    if (!await _confirm(l10n.deleteRoundConfirm)) return;
+    try {
+      await ref
+          .read(apiClientProvider)
+          .delete('/meter-rounds/${widget.roundId}');
+      ref.invalidate(meterRoundsProvider);
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.error)),
+        );
+      }
+    }
+  }
+
+  Future<bool> _confirm(String message) async {
+    final l10n = AppLocalizations.of(context)!;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+    return ok == true;
   }
 
   Widget _photoButton(int unitId, String tooltip, String? path, bool isMeter) {
@@ -295,7 +456,9 @@ class _ReadingRoundScreenState extends ConsumerState<ReadingRoundScreen> {
             'bill_photo_path': _billPhotos[unitId],
         },
       );
-      setState(() => _saved.add(unitId));
+      _meterPhotos.remove(unitId);
+      _billPhotos.remove(unitId);
+      ref.invalidate(meterRoundsProvider);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

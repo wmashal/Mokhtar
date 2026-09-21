@@ -1,8 +1,14 @@
-"""End-to-end smoke test for the Mokhtar backend. Run: python tests/e2e.py"""
+"""End-to-end smoke test for the Mokhtar backend.
+
+Run: python tests/e2e.py            (against localhost:8000)
+  BASE_URL=http://192.168.10.65:8001 python tests/e2e.py   (e.g. throwaway stack on the Pi)
+⚠️ Creates test data — never run against the production database.
+"""
 import json
+import os
 import urllib.request
 
-B = "http://localhost:8000"
+B = os.environ.get("BASE_URL", "http://localhost:8000")
 
 
 def call(method, path, body=None, token=None):
@@ -118,6 +124,48 @@ s, _ = call("POST", f"/meetings/{m['id']}/rsvp", {"status": "attending"}, res)
 check("resident RSVP", s == 200)
 s, a = call("POST", f"/buildings/{bid}/announcements", {"body": "Cleaning day Friday"}, mgr)
 check("announcement", s == 200)
+
+# --- meeting edit + cancel ---
+s, m_ed = call("PATCH", f"/meetings/{m['id']}",
+               {"title": "Elevator + parking", "location": "Hall"}, mgr)
+check("edit meeting keeps time", s == 200 and m_ed["title"] == "Elevator + parking"
+      and m_ed["location"] == "Hall" and m_ed["starts_at"] == m["starts_at"], str(m_ed))
+s, _ = call("PATCH", f"/meetings/{m['id']}", {"title": "x"}, res)
+check("resident cannot edit meeting (403)", s == 403)
+s, m_tmp = call("POST", f"/buildings/{bid}/meetings",
+                {"title": "Mistake", "starts_at": "2026-09-20T18:00:00"}, mgr)
+s, _ = call("DELETE", f"/meetings/{m_tmp['id']}", token=res)
+check("resident cannot cancel meeting (403)", s == 403)
+s, _ = call("DELETE", f"/meetings/{m_tmp['id']}", token=mgr)
+check("cancel meeting", s == 200)
+s, ms = call("GET", f"/buildings/{bid}/meetings", token=mgr)
+check("cancelled meeting gone", all(x["id"] != m_tmp["id"] for x in ms))
+s, _ = call("DELETE", f"/meetings/{m_tmp['id']}", token=mgr)
+check("cancel missing meeting (404)", s == 404)
+
+# --- reading corrections while the round is open (r3 = Nov, unit2 prev = 1035) ---
+s, rd_fix = call("POST", f"/meter-rounds/{r3['id']}/readings",
+                 {"unit_id": u2["id"], "current_value": 1100}, mgr)
+check("reading saved (consumption 65)", s == 200 and rd_fix["consumption"] == "65.00", str(rd_fix))
+s, rd_fix2 = call("PATCH", f"/readings/{rd_fix['id']}", {"current_value": 1150}, mgr)
+check("typo corrected → consumption 115, cost 287.5",
+      s == 200 and rd_fix2["consumption"] == "115.00" and rd_fix2["cost"] == "287.50", str(rd_fix2))
+s, _ = call("PATCH", f"/readings/{rd_fix['id']}", {"current_value": 1000}, mgr)
+check("correction below previous rejected (422)", s == 422)
+s, _ = call("PATCH", f"/readings/{rd_fix['id']}", {"current_value": 1160}, res)
+check("resident cannot correct reading (403)", s == 403)
+s, _ = call("DELETE", f"/readings/{rd_fix['id']}", token=res)
+check("resident cannot delete reading (403)", s == 403)
+s, _ = call("DELETE", f"/readings/{rd_fix['id']}", token=mgr)
+check("delete mis-saved reading", s == 200)
+
+# --- delete open round; issued round is protected ---
+s, _ = call("DELETE", f"/meter-rounds/{r2['id']}", token=mgr)
+check("issued round cannot be deleted (409)", s == 409)
+s, _ = call("DELETE", f"/meter-rounds/{r3['id']}", token=mgr)
+check("delete open round", s == 200)
+s, _ = call("POST", f"/meter-rounds/{r3['id']}/issue", token=mgr)
+check("deleted round is gone (404)", s == 404)
 
 # --- monthly charge job (idempotent, per-unit fee override) ---
 s, unit_patch = call("PATCH", f"/units/{u2['id']}", {"monthly_fee": 60}, mgr)

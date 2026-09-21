@@ -96,5 +96,13 @@
   "makeResident": "Demote to resident",
   "deactivateUser": "Deactivate login",
   "managerRole": "Manager",
-  "residentRole": "Resident"
+  "residentRole": "Resident",
+  "edit": "Edit",
+  "delete": "Delete",
+  "editMeeting": "Edit meeting",
+  "deleteMeetingConfirm": "Cancel this meeting for everyone?",
+  "editReading": "Correct reading",
+  "deleteReadingConfirm": "Delete this reading? You can re-enter it",
+  "deleteRound": "Delete round",
+  "deleteRoundConfirm": "Delete this round and all its readings? No invoices issued yet"
 }

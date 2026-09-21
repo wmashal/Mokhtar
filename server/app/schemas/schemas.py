@@ -135,6 +135,13 @@ class ReadingCreate(BaseModel):
     bill_photo_path: Optional[str] = None  # water bill — proof
 
 
+class ReadingUpdate(BaseModel):
+    """Correct a mis-typed reading while its round is still open."""
+    current_value: Decimal
+    photo_path: Optional[str] = None       # null → keep existing
+    bill_photo_path: Optional[str] = None
+
+
 class ReadingOut(BaseModel):
     id: int
     unit_id: int
@@ -203,6 +210,13 @@ class MeetingCreate(BaseModel):
     starts_at: datetime
     location: str = ""
     agenda: str = ""
+
+
+class MeetingUpdate(BaseModel):
+    title: Optional[str] = None
+    starts_at: Optional[datetime] = None
+    location: Optional[str] = None
+    agenda: Optional[str] = None
 
 
 class MeetingOut(BaseModel):

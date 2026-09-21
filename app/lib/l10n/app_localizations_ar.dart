@@ -298,4 +298,29 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get residentRole => 'مقيم';
+
+  @override
+  String get edit => 'تعديل';
+
+  @override
+  String get delete => 'حذف';
+
+  @override
+  String get editMeeting => 'تعديل الاجتماع';
+
+  @override
+  String get deleteMeetingConfirm => 'إلغاء هذا الاجتماع نهائياً؟';
+
+  @override
+  String get editReading => 'تصحيح القراءة';
+
+  @override
+  String get deleteReadingConfirm => 'حذف هذه القراءة؟ يمكنك إدخالها من جديد';
+
+  @override
+  String get deleteRound => 'حذف الجولة';
+
+  @override
+  String get deleteRoundConfirm =>
+      'حذف الجولة وكل قراءاتها؟ لم تصدر فواتير بعد';
 }

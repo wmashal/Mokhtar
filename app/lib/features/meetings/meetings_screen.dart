@@ -50,6 +50,23 @@ class MeetingsScreen extends ConsumerWidget {
                                           .textTheme
                                           .titleMedium),
                                 ),
+                                if (isManager) ...[
+                                  IconButton(
+                                    icon: const Icon(Icons.edit_outlined,
+                                        size: 20),
+                                    tooltip: l10n.edit,
+                                    onPressed: () => _showMeetingForm(
+                                        context, ref, l10n,
+                                        existing: m),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline,
+                                        size: 20),
+                                    tooltip: l10n.delete,
+                                    onPressed: () =>
+                                        _cancelMeeting(context, ref, l10n, m),
+                                  ),
+                                ],
                               ],
                             ),
                             const SizedBox(height: 8),
@@ -92,10 +109,41 @@ class MeetingsScreen extends ConsumerWidget {
           ? FloatingActionButton.extended(
               icon: const Icon(Icons.add),
               label: Text(l10n.newMeeting),
-              onPressed: () => _showNewMeeting(context, ref, l10n),
+              onPressed: () => _showMeetingForm(context, ref, l10n),
             )
           : null,
     );
+  }
+
+  Future<void> _cancelMeeting(BuildContext context, WidgetRef ref,
+      AppLocalizations l10n, Meeting m) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        content: Text(l10n.deleteMeetingConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    try {
+      await ref.read(apiClientProvider).delete('/meetings/${m.id}');
+      ref.invalidate(meetingsProvider);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(l10n.error)));
+      }
+    }
   }
 
   Future<void> _rsvp(BuildContext context, WidgetRef ref, int meetingId,
@@ -119,12 +167,16 @@ class MeetingsScreen extends ConsumerWidget {
     }
   }
 
-  void _showNewMeeting(
-      BuildContext context, WidgetRef ref, AppLocalizations l10n) {
-    final titleCtrl = TextEditingController();
-    final locationCtrl = TextEditingController();
-    final agendaCtrl = TextEditingController();
-    DateTime when = DateTime.now().add(const Duration(days: 1));
+  /// Create a meeting, or edit it when [existing] is given.
+  void _showMeetingForm(
+      BuildContext context, WidgetRef ref, AppLocalizations l10n,
+      {Meeting? existing}) {
+    final titleCtrl = TextEditingController(text: existing?.title ?? '');
+    final locationCtrl =
+        TextEditingController(text: existing?.location ?? '');
+    final agendaCtrl = TextEditingController(text: existing?.agenda ?? '');
+    DateTime when =
+        existing?.startsAt ?? DateTime.now().add(const Duration(days: 1));
 
     showModalBottomSheet(
       context: context,
@@ -139,7 +191,7 @@ class MeetingsScreen extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(l10n.newMeeting,
+              Text(existing == null ? l10n.newMeeting : l10n.editMeeting,
                   style: Theme.of(ctx).textTheme.titleLarge),
               const SizedBox(height: 16),
               TextField(
@@ -173,7 +225,9 @@ class MeetingsScreen extends ConsumerWidget {
                   final d = await showDatePicker(
                     context: ctx,
                     initialDate: when,
-                    firstDate: DateTime.now(),
+                    firstDate: existing == null
+                        ? DateTime.now()
+                        : DateTime(2020), // editing a past meeting is allowed
                     lastDate: DateTime.now().add(const Duration(days: 365)),
                   );
                   if (d == null) return;
@@ -189,17 +243,29 @@ class MeetingsScreen extends ConsumerWidget {
               const SizedBox(height: 24),
               FilledButton(
                 onPressed: () async {
-                  final auth = ref.read(authProvider).value;
                   try {
-                    await ref.read(apiClientProvider).post(
-                      '/buildings/${auth!.buildingId}/meetings',
-                      data: {
-                        'title': titleCtrl.text.trim(),
-                        'starts_at': when.toIso8601String(),
-                        'location': locationCtrl.text.trim(),
-                        'agenda': agendaCtrl.text.trim(),
-                      },
-                    );
+                    if (existing == null) {
+                      final auth = ref.read(authProvider).value;
+                      await ref.read(apiClientProvider).post(
+                        '/buildings/${auth!.buildingId}/meetings',
+                        data: {
+                          'title': titleCtrl.text.trim(),
+                          'starts_at': when.toIso8601String(),
+                          'location': locationCtrl.text.trim(),
+                          'agenda': agendaCtrl.text.trim(),
+                        },
+                      );
+                    } else {
+                      await ref.read(apiClientProvider).patch(
+                        '/meetings/${existing.id}',
+                        data: {
+                          'title': titleCtrl.text.trim(),
+                          'starts_at': when.toIso8601String(),
+                          'location': locationCtrl.text.trim(),
+                          'agenda': agendaCtrl.text.trim(),
+                        },
+                      );
+                    }
                     ref.invalidate(meetingsProvider);
                     if (ctx.mounted) Navigator.pop(ctx);
                   } catch (e) {

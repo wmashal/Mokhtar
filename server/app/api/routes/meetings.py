@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.core.security import get_current_user, require_manager
 from app.db.session import get_db
 from app.models.models import Meeting, MeetingRsvp, User
-from app.schemas.schemas import MeetingCreate, MeetingOut, RsvpRequest
+from app.schemas.schemas import MeetingCreate, MeetingOut, MeetingUpdate, RsvpRequest
 
 router = APIRouter(tags=["meetings"])
 
@@ -36,6 +36,41 @@ def list_meetings(
         .order_by(Meeting.starts_at.desc())
         .all()
     )
+
+
+@router.patch("/meetings/{meeting_id}", response_model=MeetingOut)
+def update_meeting(
+    meeting_id: int,
+    body: MeetingUpdate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_manager),
+):
+    """Manager edits a meeting (wrong time, place, title...)."""
+    meeting = db.get(Meeting, meeting_id)
+    if not meeting:
+        raise HTTPException(404, "Meeting not found")
+    for field, value in body.model_dump(exclude_unset=True).items():
+        setattr(meeting, field, value)
+    db.commit()
+    db.refresh(meeting)
+    # TODO: push notification about the change
+    return meeting
+
+
+@router.delete("/meetings/{meeting_id}")
+def cancel_meeting(
+    meeting_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_manager),
+):
+    """Manager cancels a meeting; RSVPs go with it."""
+    meeting = db.get(Meeting, meeting_id)
+    if not meeting:
+        raise HTTPException(404, "Meeting not found")
+    db.delete(meeting)  # RSVPs cascade
+    db.commit()
+    # TODO: push notification about the cancellation
+    return {"ok": True}
 
 
 @router.post("/meetings/{meeting_id}/rsvp")

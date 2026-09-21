@@ -299,4 +299,29 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get residentRole => 'Resident';
+
+  @override
+  String get edit => 'Edit';
+
+  @override
+  String get delete => 'Delete';
+
+  @override
+  String get editMeeting => 'Edit meeting';
+
+  @override
+  String get deleteMeetingConfirm => 'Cancel this meeting for everyone?';
+
+  @override
+  String get editReading => 'Correct reading';
+
+  @override
+  String get deleteReadingConfirm => 'Delete this reading? You can re-enter it';
+
+  @override
+  String get deleteRound => 'Delete round';
+
+  @override
+  String get deleteRoundConfirm =>
+      'Delete this round and all its readings? No invoices issued yet';
 }
