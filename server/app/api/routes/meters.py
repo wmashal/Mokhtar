@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.security import require_manager, get_current_user
+from app.core.security import (
+    check_building_access, get_current_user, require_manager,
+)
 from app.db.session import get_db
 from app.models.models import (
     Building, MeterReading, MeterRound, PublicMeter, PublicMeterReading,
-    RoundStatus, Transaction, TxType, Unit, User,
+    Role, RoundStatus, Transaction, TxType, Unit, User,
 )
 from app.schemas.schemas import (
     MeterRoundCreate, MeterRoundOut, PublicMeterCreate, PublicMeterOut,
@@ -33,9 +35,10 @@ def open_round(
     building_id: int,
     body: MeterRoundCreate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_manager),
+    current: User = Depends(require_manager),
 ):
     """Mokhtar opens a monthly reading round."""
+    check_building_access(current, building_id)
     round_ = MeterRound(building_id=building_id, month=body.month)
     db.add(round_)
     db.commit()
@@ -48,12 +51,13 @@ def add_reading(
     round_id: int,
     body: ReadingCreate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_manager),
+    current: User = Depends(require_manager),
 ):
     """Record one unit's reading; computes consumption and cost automatically."""
     round_ = db.get(MeterRound, round_id)
     if not round_:
         raise HTTPException(404, "Round not found")
+    check_building_access(current, round_.building_id)
     if round_.status != RoundStatus.open:
         raise HTTPException(409, "Round already issued")
 
@@ -88,12 +92,13 @@ def correct_reading(
     reading_id: int,
     body: ReadingUpdate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_manager),
+    current: User = Depends(require_manager),
 ):
     """Fix a mis-typed reading while its round is still open (nothing invoiced yet)."""
     reading = db.get(MeterReading, reading_id)
     if not reading:
         raise HTTPException(404, "Reading not found")
+    check_building_access(current, reading.round.building_id)
     if reading.round.status != RoundStatus.open:
         raise HTTPException(409, "Round already issued")
     if body.current_value < reading.previous_value:
@@ -116,12 +121,13 @@ def correct_reading(
 def delete_reading(
     reading_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(require_manager),
+    current: User = Depends(require_manager),
 ):
     """Remove a mis-saved reading while its round is still open."""
     reading = db.get(MeterReading, reading_id)
     if not reading:
         raise HTTPException(404, "Reading not found")
+    check_building_access(current, reading.round.building_id)
     if reading.round.status != RoundStatus.open:
         raise HTTPException(409, "Round already issued")
     db.delete(reading)
@@ -133,12 +139,13 @@ def delete_reading(
 def delete_round(
     round_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(require_manager),
+    current: User = Depends(require_manager),
 ):
     """Discard an open round with all its readings. Issued rounds stay (invoices exist)."""
     round_ = db.get(MeterRound, round_id)
     if not round_:
         raise HTTPException(404, "Round not found")
+    check_building_access(current, round_.building_id)
     if round_.status != RoundStatus.open:
         raise HTTPException(409, "Round already issued — invoices exist")
     db.delete(round_)  # readings cascade
@@ -150,12 +157,13 @@ def delete_round(
 def issue_round(
     round_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(require_manager),
+    current: User = Depends(require_manager),
 ):
     """Close the round: each reading becomes a charge on the unit's balance."""
     round_ = db.get(MeterRound, round_id)
     if not round_:
         raise HTTPException(404, "Round not found")
+    check_building_access(current, round_.building_id)
     if round_.status != RoundStatus.open:
         raise HTTPException(409, "Round already issued")
 
@@ -182,8 +190,9 @@ def issue_round(
 def list_rounds(
     building_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    current: User = Depends(get_current_user),
 ):
+    check_building_access(current, building_id)
     return (
         db.query(MeterRound)
         .filter(MeterRound.building_id == building_id)
@@ -201,7 +210,14 @@ def my_readings(
     user: User = Depends(get_current_user),
 ):
     """A resident sees their own meter history: previous/current/diff/cost per month."""
-    if user.unit_id != unit_id and user.role.value != "manager":
+    unit = db.get(Unit, unit_id)
+    if not unit:
+        raise HTTPException(404, "Unit not found")
+    if user.role == Role.admin:
+        pass
+    elif user.role == Role.manager:
+        check_building_access(user, unit.building_id)
+    elif user.unit_id != unit_id:
         raise HTTPException(403, "Not your unit")
     rows = (
         db.query(MeterReading, MeterRound)
@@ -231,8 +247,9 @@ def create_public_meter(
     building_id: int,
     body: PublicMeterCreate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_manager),
+    current: User = Depends(require_manager),
 ):
+    check_building_access(current, building_id)
     if not db.get(Building, building_id):
         raise HTTPException(404, "Building not found")
     meter = PublicMeter(building_id=building_id, **body.model_dump())
@@ -249,9 +266,10 @@ def create_public_meter(
 def list_public_meters(
     building_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    current: User = Depends(get_current_user),
 ):
     """All residents can see public meters with their readings (transparency)."""
+    check_building_access(current, building_id)
     meters = db.query(PublicMeter).filter(PublicMeter.building_id == building_id).all()
     return [
         {
@@ -282,12 +300,13 @@ def add_public_reading(
     meter_id: int,
     body: PublicReadingCreate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_manager),
+    current: User = Depends(require_manager),
 ):
     """Record a monthly reading for a shared meter; computes consumption & cost."""
     meter = db.get(PublicMeter, meter_id)
     if not meter:
         raise HTTPException(404, "Meter not found")
+    check_building_access(current, meter.building_id)
 
     last = (
         db.query(PublicMeterReading)

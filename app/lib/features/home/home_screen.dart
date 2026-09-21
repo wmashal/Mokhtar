@@ -26,13 +26,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final auth = ref.watch(authProvider).value;
-    final isManager = auth?.isManager == true;
+    // Admin inside an opened building gets the full manager view.
+    final isManager = auth?.isManager == true || auth?.isAdmin == true;
+    final hasUnit = auth?.unitId != null; // system admin may have no unit
 
-    // Manager: Dashboard, My statement, Building, Units, Meters, Meetings, Announcements
-    // Resident: Dashboard, My statement, Building, Meters, Meetings, Announcements
+    // Dashboard, [My statement], Building, [Units], Meters, Meetings, Announcements
+    // ([...] = manager-only / unit-holders-only)
+    final myIdx = hasUnit ? 1 : -1;
+    final bldIdx = hasUnit ? 2 : 1;
+
     final destinations = <NavigationDestination>[
       NavigationDestination(icon: const Icon(Icons.dashboard_outlined), label: l10n.dashboard),
-      NavigationDestination(icon: const Icon(Icons.person_outline), label: l10n.myStatement),
+      if (hasUnit)
+        NavigationDestination(icon: const Icon(Icons.person_outline), label: l10n.myStatement),
       NavigationDestination(icon: const Icon(Icons.account_balance_outlined), label: l10n.buildingAccount),
       if (isManager)
         NavigationDestination(icon: const Icon(Icons.apartment), label: l10n.units),
@@ -46,7 +52,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     final screens = <Widget>[
       const DashboardScreen(),
-      const FinanceScreen(myOnly: true),
+      if (hasUnit) const FinanceScreen(myOnly: true),
       const FinanceScreen(myOnly: false),
       if (isManager) const UnitsScreen(),
       const MetersScreen(),
@@ -58,6 +64,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       appBar: AppBar(
         title: Text(l10n.appName),
         actions: [
+          if (auth?.isAdmin == true)
+            IconButton(
+              icon: const Icon(Icons.admin_panel_settings_outlined),
+              tooltip: l10n.adminPanel,
+              onPressed: () =>
+                  ref.read(activeBuildingProvider.notifier).state = null,
+            ),
           if (isManager)
             IconButton(
               icon: const Icon(Icons.settings_outlined),
@@ -75,7 +88,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ],
       ),
       body: screens[_tab],
-      floatingActionButton: _buildFab(context, l10n, auth, isManager),
+      floatingActionButton: _buildFab(context, l10n, isManager, myIdx, bldIdx),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
         onDestinationSelected: (i) => setState(() => _tab = i),
@@ -84,17 +97,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget? _buildFab(BuildContext context, AppLocalizations l10n, dynamic auth, bool isManager) {
+  Widget? _buildFab(BuildContext context, AppLocalizations l10n, bool isManager, int myIdx, int bldIdx) {
     if (!isManager) return null;
-    // FAB only on statement tabs (1=mine, 2=building)
-    if (_tab != 1 && _tab != 2) return null;
+    // FAB only on statement tabs (mine + building)
+    if (_tab != myIdx && _tab != bldIdx) return null;
     return FloatingActionButton.extended(
       icon: const Icon(Icons.add),
       label: Text(l10n.addTransaction),
       onPressed: () => showModalBottomSheet(
         context: context,
         isScrollControlled: true,
-        builder: (_) => AddTransactionSheet(buildingId: auth!.buildingId!),
+        builder: (_) =>
+            AddTransactionSheet(buildingId: ref.read(currentBuildingIdProvider)!),
       ),
     );
   }

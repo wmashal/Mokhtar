@@ -104,5 +104,12 @@
   "editReading": "تصحيح القراءة",
   "deleteReadingConfirm": "حذف هذه القراءة؟ يمكنك إدخالها من جديد",
   "deleteRound": "حذف الجولة",
-  "deleteRoundConfirm": "حذف الجولة وكل قراءاتها؟ لم تصدر فواتير بعد"
+  "deleteRoundConfirm": "حذف الجولة وكل قراءاتها؟ لم تصدر فواتير بعد",
+  "adminPanel": "لوحة مدير النظام",
+  "buildings": "العمارات",
+  "addBuilding": "إضافة عمارة",
+  "buildingName": "اسم العمارة",
+  "assignManager": "تعيين مختار",
+  "openBuilding": "فتح العمارة",
+  "firstLoginCode": "رمز الدخول الأول للمختار"
 }

@@ -24,11 +24,9 @@ class UserAccount {
 }
 
 final _usersProvider = FutureProvider<List<UserAccount>>((ref) async {
-  final auth = ref.watch(authProvider).value;
-  if (auth?.buildingId == null) return [];
-  final res = await ref
-      .read(apiClientProvider)
-      .get('/buildings/${auth!.buildingId}/users');
+  final bid = ref.watch(currentBuildingIdProvider);
+  if (bid == null) return [];
+  final res = await ref.read(apiClientProvider).get('/buildings/$bid/users');
   return (res.data as List).map((e) => UserAccount.fromJson(e)).toList();
 });
 

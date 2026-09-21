@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.core.security import get_current_user, require_manager
+from app.core.security import (
+    check_building_access, get_current_user, require_manager,
+)
 from app.db.session import get_db
 from app.models.models import Announcement, User
 from app.schemas.schemas import AnnouncementCreate, AnnouncementOut
@@ -14,8 +16,9 @@ def create_announcement(
     building_id: int,
     body: AnnouncementCreate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_manager),
+    current: User = Depends(require_manager),
 ):
+    check_building_access(current, building_id)
     ann = Announcement(building_id=building_id, body=body.body)
     db.add(ann)
     db.commit()
@@ -28,8 +31,9 @@ def create_announcement(
 def list_announcements(
     building_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    current: User = Depends(get_current_user),
 ):
+    check_building_access(current, building_id)
     return (
         db.query(Announcement)
         .filter(Announcement.building_id == building_id)

@@ -323,4 +323,25 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get deleteRoundConfirm =>
       'حذف الجولة وكل قراءاتها؟ لم تصدر فواتير بعد';
+
+  @override
+  String get adminPanel => 'لوحة مدير النظام';
+
+  @override
+  String get buildings => 'العمارات';
+
+  @override
+  String get addBuilding => 'إضافة عمارة';
+
+  @override
+  String get buildingName => 'اسم العمارة';
+
+  @override
+  String get assignManager => 'تعيين مختار';
+
+  @override
+  String get openBuilding => 'فتح العمارة';
+
+  @override
+  String get firstLoginCode => 'رمز الدخول الأول للمختار';
 }

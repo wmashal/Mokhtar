@@ -139,9 +139,9 @@ class RoundsTab extends ConsumerWidget {
     final now = DateTime.now();
     final month = '${now.year}-${now.month.toString().padLeft(2, '0')}-01';
     try {
-      final auth = ref.read(authProvider).value;
+      final bid = ref.read(currentBuildingIdProvider);
       await ref.read(apiClientProvider).post(
-        '/buildings/${auth!.buildingId}/meter-rounds',
+        '/buildings/$bid/meter-rounds',
         data: {'month': month},
       );
       ref.invalidate(meterRoundsProvider);

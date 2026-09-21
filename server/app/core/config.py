@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     invite_code_max_attempts: int = 5
     default_currency: str = "ILS"
     photos_dir: str = "photos"  # meter/bill/receipt photos (volume-mounted on Pi)
+    admin_phone: str = ""  # system admin's phone (env ADMIN_PHONE); seeded/elevated at startup
 
     class Config:
         env_file = ".env"

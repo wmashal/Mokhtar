@@ -104,5 +104,12 @@
   "editReading": "Correct reading",
   "deleteReadingConfirm": "Delete this reading? You can re-enter it",
   "deleteRound": "Delete round",
-  "deleteRoundConfirm": "Delete this round and all its readings? No invoices issued yet"
+  "deleteRoundConfirm": "Delete this round and all its readings? No invoices issued yet",
+  "adminPanel": "System admin panel",
+  "buildings": "Buildings",
+  "addBuilding": "Add building",
+  "buildingName": "Building name",
+  "assignManager": "Assign mokhtar",
+  "openBuilding": "Open building",
+  "firstLoginCode": "Mokhtar's first login code"
 }

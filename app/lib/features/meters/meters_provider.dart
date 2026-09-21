@@ -106,11 +106,9 @@ class PublicReading {
 }
 
 final meterRoundsProvider = FutureProvider<List<MeterRound>>((ref) async {
-  final auth = ref.watch(authProvider).value;
-  if (auth?.buildingId == null) return [];
-  final res = await ref
-      .read(apiClientProvider)
-      .get('/buildings/${auth!.buildingId}/meter-rounds');
+  final bid = ref.watch(currentBuildingIdProvider);
+  if (bid == null) return [];
+  final res = await ref.read(apiClientProvider).get('/buildings/$bid/meter-rounds');
   return (res.data as List).map((e) => MeterRound.fromJson(e)).toList();
 });
 
@@ -124,10 +122,8 @@ final myReadingsProvider = FutureProvider<List<MyReading>>((ref) async {
 });
 
 final publicMetersProvider = FutureProvider<List<PublicMeter>>((ref) async {
-  final auth = ref.watch(authProvider).value;
-  if (auth?.buildingId == null) return [];
-  final res = await ref
-      .read(apiClientProvider)
-      .get('/buildings/${auth!.buildingId}/public-meters');
+  final bid = ref.watch(currentBuildingIdProvider);
+  if (bid == null) return [];
+  final res = await ref.read(apiClientProvider).get('/buildings/$bid/public-meters');
   return (res.data as List).map((e) => PublicMeter.fromJson(e)).toList();
 });

@@ -3,9 +3,11 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.security import get_current_user, require_manager
+from app.core.security import (
+    check_building_access, get_current_user, require_manager,
+)
 from app.db.session import get_db
-from app.models.models import Transaction, TxType, Unit, User
+from app.models.models import Role, Transaction, TxType, Unit, User
 from app.schemas.schemas import TransactionCreate, TransactionOut
 from app.services.charge_service import generate_monthly_charges
 
@@ -17,9 +19,10 @@ def add_transaction(
     building_id: int,
     body: TransactionCreate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_manager),
+    current: User = Depends(require_manager),
 ):
     """Record a payment, charge, or expense. Updates unit balance if unit-linked."""
+    check_building_access(current, building_id)
     tx = Transaction(building_id=building_id, **body.model_dump())
 
     if body.unit_id:
@@ -41,9 +44,10 @@ def add_transaction(
 def list_transactions(
     building_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    current: User = Depends(get_current_user),
 ):
     """Full transparent statement — visible to every resident."""
+    check_building_access(current, building_id)
     return (
         db.query(Transaction)
         .filter(Transaction.building_id == building_id)
@@ -57,10 +61,11 @@ def run_monthly_charges(
     building_id: int,
     month: date | None = None,
     db: Session = Depends(get_db),
-    _: User = Depends(require_manager),
+    current: User = Depends(require_manager),
 ):
     """Manual trigger for monthly charges (backup to the automatic 1st-of-month job).
     Idempotent — safe to run multiple times for the same month."""
+    check_building_access(current, building_id)
     month = (month or date.today()).replace(day=1)
     return generate_monthly_charges(db, building_id, month)
 
@@ -72,7 +77,14 @@ def unit_statement(
     user: User = Depends(get_current_user),
 ):
     """A unit's own transactions (residents see only their own; manager sees all)."""
-    if user.unit_id != unit_id and user.role.value != "manager":
+    unit = db.get(Unit, unit_id)
+    if not unit:
+        raise HTTPException(404, "Unit not found")
+    if user.role == Role.admin:
+        pass
+    elif user.role == Role.manager:
+        check_building_access(user, unit.building_id)
+    elif user.unit_id != unit_id:
         raise HTTPException(403, "Not your unit")
     return (
         db.query(Transaction)

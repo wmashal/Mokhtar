@@ -6,7 +6,21 @@ from jose import jwt
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.models.models import InviteCode, User
+from app.models.models import InviteCode, Role, User
+
+
+def ensure_admin(db: Session):
+    """Seed (or elevate) the system admin from ADMIN_PHONE. Called at startup."""
+    if not settings.admin_phone:
+        return
+    user = db.query(User).filter(User.phone == settings.admin_phone).first()
+    if user:
+        if user.role != Role.admin:
+            user.role = Role.admin  # elevate the mokhtar's own account
+            db.commit()
+    else:
+        db.add(User(phone=settings.admin_phone, unit_id=None, role=Role.admin))
+        db.commit()
 
 
 def create_invite_code(db: Session, phone: str) -> InviteCode:
@@ -54,7 +68,7 @@ def verify_and_login(db: Session, phone: str, code: str) -> tuple[User, str]:
             "sub": str(user.id),
             "role": user.role.value,
             "unit_id": user.unit_id,
-            "building_id": user.unit.building_id,
+            "building_id": user.unit.building_id if user.unit else None,
             "exp": datetime.utcnow() + timedelta(days=settings.jwt_expire_days),
         },
         settings.jwt_secret,

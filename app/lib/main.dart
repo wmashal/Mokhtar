@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'l10n/app_localizations.dart';
 
 import 'core/theme/theme.dart';
+import 'features/admin/admin_screen.dart';
 import 'features/auth/auth_provider.dart';
 import 'features/auth/login_screen.dart';
 import 'features/home/home_screen.dart';
@@ -36,7 +37,14 @@ class MokhtarApp extends ConsumerWidget {
         loading: () =>
             const Scaffold(body: Center(child: CircularProgressIndicator())),
         error: (_, _) => const LoginScreen(),
-        data: (state) => state.isLoggedIn ? const HomeScreen() : const LoginScreen(),
+        data: (state) {
+          if (!state.isLoggedIn) return const LoginScreen();
+          // System admin: the buildings panel until he opens a building.
+          if (state.isAdmin && ref.watch(activeBuildingProvider) == null) {
+            return const AdminScreen();
+          }
+          return const HomeScreen();
+        },
       ),
     );
   }

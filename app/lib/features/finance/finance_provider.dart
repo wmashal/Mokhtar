@@ -24,11 +24,10 @@ class Transaction {
 
 final buildingStatementProvider =
     FutureProvider<List<Transaction>>((ref) async {
-  final auth = ref.watch(authProvider).value;
-  if (auth?.buildingId == null) return [];
-  final res = await ref
-      .read(apiClientProvider)
-      .get('/buildings/${auth!.buildingId}/transactions');
+  final bid = ref.watch(currentBuildingIdProvider);
+  if (bid == null) return [];
+  final res =
+      await ref.read(apiClientProvider).get('/buildings/$bid/transactions');
   return (res.data as List).map((e) => Transaction.fromJson(e)).toList();
 });
 

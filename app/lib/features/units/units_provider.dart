@@ -23,10 +23,9 @@ class Unit {
 }
 
 final unitsProvider = FutureProvider<List<Unit>>((ref) async {
-  final auth = ref.watch(authProvider).value;
-  if (auth?.buildingId == null) return [];
-  final res =
-      await ref.read(apiClientProvider).get('/buildings/${auth!.buildingId}/units');
+  final bid = ref.watch(currentBuildingIdProvider);
+  if (bid == null) return [];
+  final res = await ref.read(apiClientProvider).get('/buildings/$bid/units');
   return (res.data as List).map((e) => Unit.fromJson(e)).toList();
 });
 

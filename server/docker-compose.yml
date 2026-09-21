@@ -24,6 +24,7 @@ services:
     environment:
       DATABASE_URL: postgresql://mokhtar:mokhtar@db:5432/mokhtar
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      ADMIN_PHONE: ${ADMIN_PHONE:-}  # system admin's phone — seeded/elevated at startup
       DEFAULT_CURRENCY: ILS
       PHOTOS_DIR: /data/photos
     volumes:

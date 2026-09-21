@@ -15,10 +15,9 @@ class Announcement {
 }
 
 final announcementsProvider = FutureProvider<List<Announcement>>((ref) async {
-  final auth = ref.watch(authProvider).value;
-  if (auth?.buildingId == null) return [];
-  final res = await ref
-      .read(apiClientProvider)
-      .get('/buildings/${auth!.buildingId}/announcements');
+  final bid = ref.watch(currentBuildingIdProvider);
+  if (bid == null) return [];
+  final res =
+      await ref.read(apiClientProvider).get('/buildings/$bid/announcements');
   return (res.data as List).map((e) => Announcement.fromJson(e)).toList();
 });

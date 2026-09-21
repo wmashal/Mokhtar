@@ -140,10 +140,10 @@ class PublicMetersTab extends ConsumerWidget {
           ),
           FilledButton(
             onPressed: () async {
-              final auth = ref.read(authProvider).value;
+              final bid = ref.read(currentBuildingIdProvider);
               try {
                 await ref.read(apiClientProvider).post(
-                  '/buildings/${auth!.buildingId}/public-meters',
+                  '/buildings/$bid/public-meters',
                   data: {
                     'name': nameCtrl.text.trim(),
                     'meter_type': 'electricity',

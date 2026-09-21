@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart' show StateProvider;
 
 import '../../core/api/api_client.dart';
 import '../../core/storage/secure_storage.dart';
@@ -16,6 +17,7 @@ class AuthState {
 
   bool get isLoggedIn => token != null;
   bool get isManager => role == 'manager';
+  bool get isAdmin => role == 'admin'; // system admin — manages all buildings
 }
 
 Map<String, dynamic> _decodeJwt(String token) {
@@ -70,6 +72,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
   Future<void> logout() async {
     await ref.read(tokenStorageProvider).clear();
+    ref.read(activeBuildingProvider.notifier).state = null;
     state = const AsyncData(AuthState());
   }
 
@@ -86,3 +89,12 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 final authProvider = AsyncNotifierProvider<AuthNotifier, AuthState>(
   AuthNotifier.new,
 );
+
+/// When the system admin opens a building, this overrides the building context.
+final activeBuildingProvider = StateProvider<int?>((ref) => null);
+
+/// The building the app shows data for: the admin's opened building,
+/// otherwise the logged-in user's own building.
+final currentBuildingIdProvider = Provider<int?>((ref) =>
+    ref.watch(activeBuildingProvider) ??
+    ref.watch(authProvider).value?.buildingId);

@@ -64,7 +64,6 @@ Future<void> showUnitFormSheet(BuildContext context, WidgetRef ref,
           const SizedBox(height: 24),
           FilledButton(
             onPressed: () async {
-              final auth = ref.read(authProvider).value;
               final body = {
                 'unit_number': numberCtrl.text.trim(),
                 'resident_name': nameCtrl.text.trim(),
@@ -78,8 +77,9 @@ Future<void> showUnitFormSheet(BuildContext context, WidgetRef ref,
                       .read(apiClientProvider)
                       .patch('/units/${unit.id}', data: body);
                 } else {
+                  final bid = ref.read(currentBuildingIdProvider);
                   await ref.read(apiClientProvider).post(
-                      '/buildings/${auth!.buildingId}/units',
+                      '/buildings/$bid/units',
                       data: body);
                 }
                 ref.invalidate(unitsProvider);

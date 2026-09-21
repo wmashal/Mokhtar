@@ -10,6 +10,7 @@ from app.db.session import Base
 
 
 class Role(str, enum.Enum):
+    admin = "admin"        # system admin — manages all buildings (deployment-level)
     manager = "manager"
     resident = "resident"
 
@@ -63,7 +64,7 @@ class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True)
     phone = Column(String(30), nullable=False, unique=True, index=True)
-    unit_id = Column(Integer, ForeignKey("units.id"), nullable=False)
+    unit_id = Column(Integer, ForeignKey("units.id"), nullable=True)  # null = system admin (no unit)
     role = Column(Enum(Role), nullable=False, default=Role.resident)
     fcm_token = Column(String(500), nullable=True)  # device token for push
     created_at = Column(DateTime, default=datetime.utcnow)

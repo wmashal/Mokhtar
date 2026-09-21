@@ -29,20 +29,32 @@ def check(label, ok, detail=""):
     assert ok, label
 
 
-# --- bootstrap building + manager ---
-_, b = call("POST", "/buildings", {"name": "E2E Bldg", "monthly_fee": 50, "water_unit_price": 2.5})
+# --- system admin bootstrap (admin user seeded at API startup from ADMIN_PHONE) ---
+ADMIN_PHONE = os.environ.get("ADMIN_PHONE", "0599999999")
+s, binv = call("POST", "/auth/admin-bootstrap")
+check("admin bootstrap code", s == 200 and binv["phone"] == ADMIN_PHONE, str(binv))
+s, alog = call("POST", "/auth/login", {"phone": ADMIN_PHONE, "code": binv["code"]})
+check("admin login (no unit/building)", s == 200 and alog["role"] == "admin"
+      and alog["unit_id"] is None and alog["building_id"] is None, str(alog))
+adm = alog["access_token"]
+s, _ = call("POST", "/auth/admin-bootstrap")
+check("admin bootstrap closed after first login (409)", s == 409)
+
+# --- bootstrap building + manager (admin-driven) ---
+s, b = call("POST", "/buildings", {"name": "E2E Bldg", "monthly_fee": 50, "water_unit_price": 2.5}, adm)
+check("admin creates building", s == 200, b.get("name"))
 bid = b["id"]
 s, _ = call("POST", f"/buildings/{bid}/setup-manager",
-            {"unit_number": "1", "resident_name": "Mokhtar", "phone": "0522222221"})
+            {"unit_number": "1", "resident_name": "Mokhtar", "phone": "0522222221"}, adm)
 check("setup manager", s == 200)
 
-s, inv = call("POST", f"/buildings/{bid}/bootstrap-code")
+s, inv = call("POST", f"/buildings/{bid}/bootstrap-code", token=adm)
 check("bootstrap code", s == 200, inv["code"])
 s, login = call("POST", "/auth/login", {"phone": "0522222221", "code": inv["code"]})
 check("manager login", s == 200 and login["role"] == "manager")
 mgr = login["access_token"]
 
-s, _ = call("POST", f"/buildings/{bid}/bootstrap-code")
+s, _ = call("POST", f"/buildings/{bid}/bootstrap-code", token=adm)
 check("bootstrap blocked after activation", s == 409)
 
 # --- units ---
@@ -221,6 +233,43 @@ s, users = call("GET", f"/buildings/{bid}/users", token=mgr)
 check("user removed, unit stays", s == 200 and len(users) == 1)
 s, still = call("GET", f"/units/{u2['id']}/statement", token=mgr)
 check("financial history preserved", s == 200 and len(still) >= 3)
+
+# --- multi-building: admin powers + isolation between buildings ---
+s, _ = call("POST", "/buildings", {"name": "Junk"}, mgr)
+check("manager cannot create building (403)", s == 403)
+s, blist = call("GET", "/buildings", token=adm)
+check("admin lists buildings with counts",
+      s == 200 and any(x["id"] == bid and x["unit_count"] >= 1 and x["manager_count"] == 1
+                       for x in blist), str(blist))
+s, _ = call("GET", "/buildings", token=mgr)
+check("manager cannot list all buildings (403)", s == 403)
+
+s, b2 = call("POST", "/buildings", {"name": "E2E B2", "monthly_fee": 10}, adm)
+check("admin creates second building", s == 200)
+s, _ = call("POST", f"/buildings/{b2['id']}/setup-manager",
+            {"unit_number": "1", "resident_name": "Mokhtar2", "phone": "0544444444"}, adm)
+s, inv_b2 = call("POST", f"/buildings/{b2['id']}/bootstrap-code", token=adm)
+s, l2 = call("POST", "/auth/login", {"phone": "0544444444", "code": inv_b2["code"]})
+check("second building's manager login", s == 200)
+mgr2 = l2["access_token"]
+
+s, _ = call("GET", f"/buildings/{bid}/units", token=mgr2)
+check("B manager cannot see A's units (403)", s == 403)
+s, _ = call("GET", f"/buildings/{b2['id']}/units", token=mgr)
+check("isolation both ways: A cannot see B (403)", s == 403)
+s, _ = call("GET", f"/buildings/{bid}/dashboard", token=mgr2)
+check("cross-building dashboard blocked (403)", s == 403)
+s, _ = call("POST", f"/buildings/{bid}/transactions", {"type": "expense", "amount": 5}, mgr2)
+check("cross-building transaction blocked (403)", s == 403)
+s, aunits = call("GET", f"/buildings/{bid}/units", token=adm)
+check("admin opens any building", s == 200 and len(aunits) >= 1)
+s, adash = call("GET", f"/buildings/{bid}/dashboard", token=adm)
+check("admin sees any dashboard", s == 200 and "total_balance" in adash)
+
+s, _ = call("POST", "/auth/invite", {"phone": ADMIN_PHONE}, mgr)
+check("manager cannot mint a code for the admin (403)", s == 403)
+s, _ = call("PATCH", f"/users/{mgr_user_id}/role", {"role": "admin"}, mgr)
+check("cannot promote to admin via role endpoint (403)", s == 403)
 
 # --- dashboard ---
 # manager dashboard

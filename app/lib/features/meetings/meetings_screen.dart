@@ -245,9 +245,9 @@ class MeetingsScreen extends ConsumerWidget {
                 onPressed: () async {
                   try {
                     if (existing == null) {
-                      final auth = ref.read(authProvider).value;
+                      final bid = ref.read(currentBuildingIdProvider);
                       await ref.read(apiClientProvider).post(
-                        '/buildings/${auth!.buildingId}/meetings',
+                        '/buildings/$bid/meetings',
                         data: {
                           'title': titleCtrl.text.trim(),
                           'starts_at': when.toIso8601String(),

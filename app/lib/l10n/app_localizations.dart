@@ -727,6 +727,48 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'حذف الجولة وكل قراءاتها؟ لم تصدر فواتير بعد'**
   String get deleteRoundConfirm;
+
+  /// No description provided for @adminPanel.
+  ///
+  /// In ar, this message translates to:
+  /// **'لوحة مدير النظام'**
+  String get adminPanel;
+
+  /// No description provided for @buildings.
+  ///
+  /// In ar, this message translates to:
+  /// **'العمارات'**
+  String get buildings;
+
+  /// No description provided for @addBuilding.
+  ///
+  /// In ar, this message translates to:
+  /// **'إضافة عمارة'**
+  String get addBuilding;
+
+  /// No description provided for @buildingName.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسم العمارة'**
+  String get buildingName;
+
+  /// No description provided for @assignManager.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعيين مختار'**
+  String get assignManager;
+
+  /// No description provided for @openBuilding.
+  ///
+  /// In ar, this message translates to:
+  /// **'فتح العمارة'**
+  String get openBuilding;
+
+  /// No description provided for @firstLoginCode.
+  ///
+  /// In ar, this message translates to:
+  /// **'رمز الدخول الأول للمختار'**
+  String get firstLoginCode;
 }
 
 class _AppLocalizationsDelegate

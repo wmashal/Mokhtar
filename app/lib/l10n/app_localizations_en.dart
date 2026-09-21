@@ -324,4 +324,25 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get deleteRoundConfirm =>
       'Delete this round and all its readings? No invoices issued yet';
+
+  @override
+  String get adminPanel => 'System admin panel';
+
+  @override
+  String get buildings => 'Buildings';
+
+  @override
+  String get addBuilding => 'Add building';
+
+  @override
+  String get buildingName => 'Building name';
+
+  @override
+  String get assignManager => 'Assign mokhtar';
+
+  @override
+  String get openBuilding => 'Open building';
+
+  @override
+  String get firstLoginCode => 'Mokhtar\'s first login code';
 }

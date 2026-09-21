@@ -92,10 +92,10 @@ class AnnouncementsScreen extends ConsumerWidget {
             const SizedBox(height: 24),
             FilledButton(
               onPressed: () async {
-                final auth = ref.read(authProvider).value;
+                final bid = ref.read(currentBuildingIdProvider);
                 try {
                   await ref.read(apiClientProvider).post(
-                    '/buildings/${auth!.buildingId}/announcements',
+                    '/buildings/$bid/announcements',
                     data: {'body': bodyCtrl.text.trim()},
                   );
                   ref.invalidate(announcementsProvider);

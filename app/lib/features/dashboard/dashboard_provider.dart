@@ -70,11 +70,11 @@ final myDashboardProvider = FutureProvider<MyDashboard>((ref) async {
 });
 
 final buildingDashboardProvider = FutureProvider<BuildingDashboard>((ref) async {
-  final auth = ref.watch(authProvider).value;
-  if (auth?.buildingId == null) throw StateError('no building');
+  final bid = ref.watch(currentBuildingIdProvider);
+  if (bid == null) throw StateError('no building');
   try {
     final res =
-        await ref.read(apiClientProvider).get('/buildings/${auth!.buildingId}/dashboard');
+        await ref.read(apiClientProvider).get('/buildings/$bid/dashboard');
     return BuildingDashboard.fromJson(res.data);
   } catch (e, st) {
     debugPrint('buildingDashboardProvider failed: $e\n$st');

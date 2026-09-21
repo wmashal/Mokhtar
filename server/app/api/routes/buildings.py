@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.security import get_current_user, require_manager
+from app.core.security import (
+    check_building_access, get_current_user, require_admin, require_manager,
+)
 from app.db.session import get_db
 from app.models.models import (
     Building, InviteCode, MeetingRsvp, MeterReading, PublicMeter, Role,
@@ -15,8 +17,12 @@ router = APIRouter(tags=["building"])
 
 
 @router.post("/buildings", response_model=BuildingOut)
-def create_building(body: BuildingCreate, db: Session = Depends(get_db)):
-    """Bootstrap: create the building (run once at setup)."""
+def create_building(
+    body: BuildingCreate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    """System admin adds a building."""
     building = Building(**body.model_dump())
     db.add(building)
     db.commit()
@@ -24,15 +30,39 @@ def create_building(body: BuildingCreate, db: Session = Depends(get_db)):
     return building
 
 
+@router.get("/buildings")
+def list_buildings(
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    """System admin: every building with unit/manager counts."""
+    out = []
+    for b in db.query(Building).order_by(Building.id).all():
+        users = [u.user for u in b.units if u.user]
+        out.append({
+            "id": b.id,
+            "name": b.name,
+            "address": b.address,
+            "monthly_fee": b.monthly_fee,
+            "water_unit_price": b.water_unit_price,
+            "electricity_unit_price": b.electricity_unit_price,
+            "currency": b.currency,
+            "unit_count": len(b.units),
+            "manager_count": sum(1 for u in users if u.role == Role.manager),
+        })
+    return out
+
+
 @router.get("/buildings/{building_id}", response_model=BuildingOut)
 def get_building(
     building_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    current: User = Depends(get_current_user),
 ):
     building = db.get(Building, building_id)
     if not building:
         raise HTTPException(404, "Building not found")
+    check_building_access(current, building_id)
     return building
 
 
@@ -41,13 +71,14 @@ def update_building(
     building_id: int,
     body: BuildingUpdate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_manager),
+    current: User = Depends(require_manager),
 ):
     """Manager updates building settings — e.g. water/electricity prices.
     A new electricity price becomes the price of all public electricity meters."""
     building = db.get(Building, building_id)
     if not building:
         raise HTTPException(404, "Building not found")
+    check_building_access(current, building_id)
     updates = body.model_dump(exclude_unset=True)
     for field, value in updates.items():
         setattr(building, field, value)
@@ -66,8 +97,9 @@ def setup_manager(
     building_id: int,
     body: UnitCreate,
     db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
 ):
-    """One-time bootstrap: create the Mokhtar's unit + manager account.
+    """System admin assigns the building's Mokhtar: creates his unit + manager account.
     Only works while the building has no manager yet."""
     if not db.get(Building, building_id):
         raise HTTPException(404, "Building not found")
@@ -89,8 +121,12 @@ def setup_manager(
 
 
 @router.post("/buildings/{building_id}/bootstrap-code")
-def bootstrap_code(building_id: int, db: Session = Depends(get_db)):
-    """One-time: issue a login code for the building's manager (no auth required).
+def bootstrap_code(
+    building_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    """Admin issues the manager's first login code.
     Only works if the manager has never logged in."""
     from app.services import auth_service
 
@@ -120,9 +156,10 @@ def add_unit(
     building_id: int,
     body: UnitCreate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_manager),
+    current: User = Depends(require_manager),
 ):
     """Mokhtar adds a unit; creates a resident user account for its phone."""
+    check_building_access(current, building_id)
     if not db.get(Building, building_id):
         raise HTTPException(404, "Building not found")
     if db.query(Unit).filter(Unit.phone == body.phone).first():
@@ -142,13 +179,14 @@ def update_unit(
     unit_id: int,
     body: UnitUpdate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_manager),
+    current: User = Depends(require_manager),
 ):
     """Mokhtar updates a unit: number, resident, phone, custom monthly fee.
     A phone change also moves the resident's login to the new number."""
     unit = db.get(Unit, unit_id)
     if not unit:
         raise HTTPException(404, "Unit not found")
+    check_building_access(current, unit.building_id)
     updates = body.model_dump(exclude_unset=True)
     new_phone = updates.get("phone")
     if new_phone and new_phone != unit.phone:
@@ -175,6 +213,7 @@ def delete_unit(
     unit = db.get(Unit, unit_id)
     if not unit:
         raise HTTPException(404, "Unit not found")
+    check_building_access(current, unit.building_id)
 
     has_history = (
         db.query(Transaction).filter(Transaction.unit_id == unit_id).first()
@@ -208,6 +247,7 @@ def delete_unit(
 def list_units(
     building_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    current: User = Depends(get_current_user),
 ):
+    check_building_access(current, building_id)
     return db.query(Unit).filter(Unit.building_id == building_id).all()

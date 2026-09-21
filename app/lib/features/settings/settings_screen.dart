@@ -29,11 +29,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _load() async {
-    final auth = ref.read(authProvider).value;
+    final bid = ref.read(currentBuildingIdProvider);
     try {
-      final res = await ref
-          .read(apiClientProvider)
-          .get('/buildings/${auth!.buildingId}');
+      final res = await ref.read(apiClientProvider).get('/buildings/$bid');
       setState(() {
         _waterPriceCtrl.text = '${res.data['water_unit_price']}';
         _electricityPriceCtrl.text = '${res.data['electricity_unit_price']}';
@@ -47,10 +45,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _save() async {
     setState(() => _saving = true);
-    final auth = ref.read(authProvider).value;
+    final bid = ref.read(currentBuildingIdProvider);
     try {
       await ref.read(apiClientProvider).patch(
-        '/buildings/${auth!.buildingId}',
+        '/buildings/$bid',
         data: {
           'water_unit_price': _waterPriceCtrl.text.trim(),
           'electricity_unit_price': _electricityPriceCtrl.text.trim(),

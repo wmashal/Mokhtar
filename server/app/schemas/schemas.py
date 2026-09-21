@@ -26,8 +26,8 @@ class LoginRequest(BaseModel):
 class TokenOut(BaseModel):
     access_token: str
     role: Role
-    unit_id: int
-    building_id: int
+    unit_id: Optional[int]      # null for the system admin
+    building_id: Optional[int]  # null for the system admin
 
 
 # ---------- Building / Units ----------

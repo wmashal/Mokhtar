@@ -4,9 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.core.security import get_current_user
+from app.core.security import check_building_access, get_current_user
 from app.db.session import get_db
-from app.models.models import Transaction, TxType, Unit, User
+from app.models.models import Role, Transaction, TxType, Unit, User
 
 router = APIRouter(tags=["dashboard"])
 
@@ -27,11 +27,15 @@ def my_dashboard(
     user: User = Depends(get_current_user),
 ):
     """Resident dashboard: my balance + what I paid this month."""
-    if user.unit_id != unit_id and user.role.value != "manager":
-        raise HTTPException(403, "Not your unit")
     unit = db.get(Unit, unit_id)
     if not unit:
         raise HTTPException(404, "Unit not found")
+    if user.role == Role.admin:
+        pass
+    elif user.role == Role.manager:
+        check_building_access(user, unit.building_id)
+    elif user.unit_id != unit_id:
+        raise HTTPException(403, "Not your unit")
 
     start, end = _month_range(date.today().replace(day=1))
     paid_this_month = (
@@ -67,9 +71,10 @@ def my_dashboard(
 def building_dashboard(
     building_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    current: User = Depends(get_current_user),
 ):
     """Building totals + per-unit breakdown — visible to every resident (transparency)."""
+    check_building_access(current, building_id)
     start, end = _month_range(date.today().replace(day=1))
 
     units = db.query(Unit).filter(Unit.building_id == building_id).all()
