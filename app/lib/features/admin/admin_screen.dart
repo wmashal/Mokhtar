@@ -47,6 +47,10 @@ class AdminScreen extends ConsumerWidget {
                         title: Text(b.name),
                         subtitle: Text(
                             '${b.unitCount} ${l10n.units} • ${b.managerCount} ${l10n.managerRole}'),
+                        // tap anywhere on the card = enter the building
+                        onTap: () => ref
+                            .read(activeBuildingProvider.notifier)
+                            .state = b.id,
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -60,11 +64,9 @@ class AdminScreen extends ConsumerWidget {
                             IconButton(
                               icon: const Icon(Icons.login),
                               tooltip: l10n.openBuilding,
-                              onPressed: b.hasManager
-                                  ? () => ref
-                                      .read(activeBuildingProvider.notifier)
-                                      .state = b.id
-                                  : null, // nothing to see until it has a manager/units
+                              onPressed: () => ref
+                                  .read(activeBuildingProvider.notifier)
+                                  .state = b.id,
                             ),
                           ],
                         ),

@@ -39,6 +39,8 @@ def list_buildings(
     out = []
     for b in db.query(Building).order_by(Building.id).all():
         users = [u.user for u in b.units if u.user]
+        # an admin whose own unit is in this building is also its acting mokhtar
+        managers = sum(1 for u in users if u.role in (Role.manager, Role.admin))
         out.append({
             "id": b.id,
             "name": b.name,
@@ -48,7 +50,7 @@ def list_buildings(
             "electricity_unit_price": b.electricity_unit_price,
             "currency": b.currency,
             "unit_count": len(b.units),
-            "manager_count": sum(1 for u in users if u.role == Role.manager),
+            "manager_count": managers,
         })
     return out
 
